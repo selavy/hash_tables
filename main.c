@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "linear_open_addressing.h"
 #include "quadratic_open_addressing.h"
 #include "qtable.h"
@@ -7,11 +8,18 @@
 LOA_TABLE(s32, int, int)
 LOA_TABLE(s64, int64_t, int*)
 QOA_TABLE(s32, int, int)
+// QOA_TABLE(s64, int64_t, int*)
+uint32_t murmur3_hash_string(const void* s, size_t len) {
+    uint32_t out;
+    MurmurHash3_x86_32(s, strlen(s), /*seed*/0x42, &out);
+    return out;
+}
+LOA_TABLE_INIT(str, char*, char*, murmur3_hash_string, strcmp, malloc, free)
 
 int main(int argc, char** argv) {
     loa_result_t r;
     loa_iter_t   k;
-    loa_table(s32)*   t = loa_create(s32);
+    loa_table_t(s32)*   t = loa_create(s32);
 
     qresult_t c;
     qiter_t   s;
