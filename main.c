@@ -16,6 +16,20 @@ uint32_t murmur3_hash_string(const void* s, size_t len) {
 }
 LOA_TABLE_INIT(str, char*, char*, murmur3_hash_string, strcmp, malloc, free)
 
+void test_qtable() {
+    qresult_t r;
+    qiter_t   k;
+    qtable* t = qcreate();
+    assert(qsize(t) == 0);
+
+    r = qput(t, 1);
+    assert(r.rc == 0);
+    qval(t, r.it) = 2;
+
+    qdestroy(t);
+    printf("test_qtable: passed.\n");
+}
+
 int main(int argc, char** argv) {
     loa_result_t r;
     loa_iter_t k;
@@ -37,6 +51,8 @@ int main(int argc, char** argv) {
 
     r = loa_put(str, t, strdup("Another key"));
     loa_val(t, r.it) = strdup("Another value!");
+
+    test_qtable();
 
     // // XFORM #1:
     // k = loa_begin(str, t);
