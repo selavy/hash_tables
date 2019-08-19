@@ -5,6 +5,7 @@
 #include "qtable.h"
 
 LOA_TABLE(s32, int, int)
+LOA_TABLE(s64, int64_t, int*)
 QOA_TABLE(s32, int, int)
 
 int main(int argc, char** argv) {

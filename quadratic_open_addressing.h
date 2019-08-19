@@ -91,8 +91,8 @@ typedef struct qoa_result_t {
         assert((newsize & (newsize - 1)) == 0);                              \
         assert(newsize > t->size);                                           \
         uint32_t i, h, m = newsize - 1, oldsize = t->asize;                  \
-        key_t* keys, *okeys = t->keys;                                       \
-        val_t* vals, *ovals = t->vals;                                       \
+        key_t* keys; key_t *okeys = t->keys;                                 \
+        val_t* vals; val_t *ovals = t->vals;                                 \
         uint8_t*   msks, *omsks = t->msks;                                   \
         keys = alloc(sizeof(keys[0]) * newsize);                             \
         vals = alloc(sizeof(vals[0]) * newsize);                             \

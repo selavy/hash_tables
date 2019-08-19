@@ -30,23 +30,23 @@ typedef struct loa_result_t {
     ms[(i)/4] |=  (1u << (2*((i) % 4)    )); \
 } while (0)
 
-#define LOA__TYPES(table_t, qkey_t, qval_t) \
-    typedef struct table_t {                \
-        uint32_t size, asize, cutoff;       \
-        qkey_t*  keys;                      \
-        qval_t*  vals;                      \
-        uint8_t* msks;                      \
+#define LOA__TYPES(table_t, key_t, val_t) \
+    typedef struct table_t {              \
+        uint32_t size, asize, cutoff;     \
+        key_t*  keys;                     \
+        val_t*  vals;                     \
+        uint8_t* msks;                    \
     } table_t;
 
-#define LOA__PROTOS(ns, table_t, qkey_t, qval_t)          \
-    table_t*     ns ## create();                          \
-    void         ns ## destroy();                         \
-    int          ns ## initialize();                      \
-    void         ns ## finalize();                        \
-    loa_iter_t   ns ## end(const table_t* t);             \
-    loa_result_t ns ## put(table_t* t, qkey_t key);       \
-    loa_iter_t   ns ## get(const table_t* t, qkey_t key); \
-    int          ns ## resize(table_t* t, int newsize);   \
+#define LOA__PROTOS(ns, table_t, key_t, val_t)           \
+    table_t*     ns ## create();                         \
+    void         ns ## destroy();                        \
+    int          ns ## initialize();                     \
+    void         ns ## finalize();                       \
+    loa_iter_t   ns ## end(const table_t* t);            \
+    loa_result_t ns ## put(table_t* t, key_t key);       \
+    loa_iter_t   ns ## get(const table_t* t, key_t key); \
+    int          ns ## resize(table_t* t, int newsize);  \
     int          ns ## resize_fast(table_t* t, uint32_t newsize);
 
 #define LOA__IMPLS(ns, table_t, key_t, val_t, hashfn, cmpfn, alloc, dealloc) \
@@ -91,8 +91,8 @@ typedef struct loa_result_t {
         assert((newsize & (newsize - 1)) == 0);                              \
         assert(newsize > t->size);                                           \
         uint32_t i, h, m = newsize - 1, oldsize = t->asize;                  \
-        key_t* keys, *okeys = t->keys;                                       \
-        val_t* vals, *ovals = t->vals;                                       \
+        key_t *keys; key_t *okeys = t->keys;                                 \
+        val_t *vals; val_t *ovals = t->vals;                                 \
         uint8_t*   msks, *omsks = t->msks;                                   \
         keys = alloc(sizeof(keys[0]) * newsize);                             \
         vals = alloc(sizeof(vals[0]) * newsize);                             \
