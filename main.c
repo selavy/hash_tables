@@ -4,12 +4,13 @@
 #include "quadratic_open_addressing.h"
 #include "qtable.h"
 
+LOA_TABLE(s32, int, int)
 QOA_TABLE(s32, int, int)
 
 int main(int argc, char** argv) {
     loa_result_t r;
     loa_iter_t   k;
-    loa_table*   t = loa_create();
+    loa_table(s32)*   t = loa_create(s32);
 
     qresult_t c;
     qiter_t   s;
@@ -23,7 +24,7 @@ int main(int argc, char** argv) {
     // ------------------------------------------------------------------------
 
     for (int i = 0; i < 100; ++i) {
-        k = loa_get(t, i);
+        k = loa_get(s32, t, i);
         assert(k == loa_end(t));
 
         s = qget(q, i);
@@ -32,7 +33,7 @@ int main(int argc, char** argv) {
 
     // ------------------------------------------------------------------------
 
-    r = loa_put(t, 0);
+    r = loa_put(s32, t, 0);
     assert(r.rc == 0);
     loa_val(t, r.it) = 0;
     assert(loa_key(t, r.it) == 0);
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
 
     // ------------------------------------------------------------------------
 
-    r = loa_put(t, 1);
+    r = loa_put(s32, t, 1);
     assert(r.rc == 0);
     loa_val(t, r.it) = 1;
     assert(loa_key(t, r.it) == 1);
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 
     // ------------------------------------------------------------------------
 
-    r = loa_put(t, 1);
+    r = loa_put(s32, t, 1);
     assert(r.rc == 1);
     assert(loa_key(t, r.it) == 1);
     assert(loa_size(t) == 2);
@@ -73,14 +74,14 @@ int main(int argc, char** argv) {
     // ------------------------------------------------------------------------
 
     int N = 100000;
-    loa_resize(t, N*2);
+    loa_resize(s32, t, N*2);
     qresize(q, N*2);
 
     for (int i = 2; i < N; ++i) {
         // if (i % 10000 == 0) {
         //     printf("%d...\n", i);
         // }
-        r = loa_put(t, i);
+        r = loa_put(s32, t, i);
         assert(r.rc             == 0);
         loa_val(t, r.it) = i;
         assert(loa_key(t, r.it) == i);
@@ -94,7 +95,7 @@ int main(int argc, char** argv) {
 
     // ------------------------------------------------------------------------
 
-    loa_destroy(t);
+    loa_destroy(s32, t);
     qdestroy(q);
     return 0;
 }
