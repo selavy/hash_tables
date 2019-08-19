@@ -203,4 +203,5 @@ typedef struct loa_result_t {
     LOA__TYPES(name, loa_table_t(name), key, val)                    \
     LOA__IMPLS(name, hash, compfn, alloc, dealloc)
 
-#define LOA_TABLE(name, key, val) LOA_TABLE_INIT(name, key, val, murmur3_hash, basic_int_eq, malloc, free)
+#define LOA_TABLE(name, key, val) \
+    LOA_TABLE_INIT(name, key, val, murmur3_hash, basic_int_eq, malloc, free)
