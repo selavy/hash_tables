@@ -10,6 +10,8 @@ add_executable(tables
     MurmurHash3.c
     utils.h
     linear_open_addressing.h
+    quadratic_open_addressing.h
+    qtable.c
     )
 set_target_properties(tables PROPERTIES C_STANDARD 11)
 # cset_target_properties(tables PROPERTIES CXX_STANDARD 17)

@@ -70,14 +70,15 @@ void loa_destroy(loa_table* t) {
 int loa_initialize(loa_table* t) {
     uint32_t asize = 32;
 	t->size = 0;
-    t->cutoff = t->asize * _LOA_LOAD_FACTOR;
+    t->cutoff = asize * _LOA_LOAD_FACTOR;
     t->keys = _loa_alloc(sizeof(t->keys[0]) * asize);
     t->vals = _loa_alloc(sizeof(t->vals[0]) * asize);
     t->msks = _loa_alloc(sizeof(t->msks[0]) * asize);
     if (!t->keys || !t->vals || !t->msks) {
-        loa_destroy(t);
+        loa_finalize(t);
         return -EMEM;
     }
+    memset(t->msks, 0, sizeof(t->msks[0]) * asize);
     t->asize = asize;
     return OK;
 }
@@ -181,7 +182,7 @@ void _loa_set_alive(uint8_t* msks, int i) {
 }
 
 int _loa_resize_fast(loa_table* t, uint32_t newsize) {
-    printf("resizing... (%u) %u -> %u\n", t->size, t->asize, newsize);
+    // printf("resizing... (%u) %u -> %u\n", t->size, t->asize, newsize);
     assert((newsize & (newsize - 1)) == 0);
     assert(newsize > t->size);
     uint32_t i, h, m = newsize - 1, oldsize = t->asize;
@@ -197,6 +198,7 @@ int _loa_resize_fast(loa_table* t, uint32_t newsize) {
         _loa_dealloc(msks);
         return -EMEM;
     }
+    memset(msks, 0, sizeof(msks[0]) * newsize);
     for (i = 0; i < oldsize; ++i) {
         if (!_loa_alive(omsks, i))
             continue;

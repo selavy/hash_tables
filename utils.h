@@ -17,7 +17,7 @@
 #define EMEM 1
 #endif
 
-int basic_int_eq(int a, int b) {
+static inline int basic_int_eq(int a, int b) {
     return a == b ? 0 : 1;
 }
 
@@ -27,14 +27,14 @@ int basic_int_eq(int a, int b) {
 #define BIG_CONSTANT(x) (x##LLU)
 #endif
 
-uint32_t murmur3_hash(const void* key, size_t len) {
+static inline uint32_t murmur3_hash(const void* key, size_t len) {
     uint32_t out;
     MurmurHash3_x86_32(key, len, /*seed*/0x42, &out);
     return out;
 }
 
 // taken from https://github.com/aappleby/smhasher/blob/master/src/Hashes.cpp
-void FNV ( const void * key, int len, uint32_t seed, void * out )
+static inline void FNV ( const void * key, int len, uint32_t seed, void * out )
 {
     unsigned int h = seed;
 
@@ -51,14 +51,14 @@ void FNV ( const void * key, int len, uint32_t seed, void * out )
     *(uint32_t*)out = h;
 }
 
-uint32_t fnv_hash(const void *key, size_t len) {
+static inline uint32_t fnv_hash(const void *key, size_t len) {
     uint32_t out;
     FNV(key, len, /*seed*/0x42, &out);
     return out;
 }
 
 // taken from https://github.com/aappleby/smhasher/blob/master/src/Hashes.cpp
-void Bernstein ( const void * key, int len, uint32_t seed, void * out )
+static inline void Bernstein ( const void * key, int len, uint32_t seed, void * out )
 {
     const uint8_t * data = (const uint8_t*)key;
 
@@ -70,7 +70,7 @@ void Bernstein ( const void * key, int len, uint32_t seed, void * out )
     *(uint32_t*)out = seed;
 }
 
-uint32_t bernstein_hash(const void *key, size_t len) {
+static inline uint32_t bernstein_hash(const void *key, size_t len) {
     uint32_t out;
     Bernstein(key, len, /*seed*/0x42, &out);
     return out;
