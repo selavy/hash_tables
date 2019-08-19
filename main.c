@@ -18,6 +18,61 @@ LOA_TABLE_INIT(str, char*, char*, murmur3_hash_string, strcmp, malloc, free)
 
 int main(int argc, char** argv) {
     loa_result_t r;
+    loa_iter_t k;
+    loa_table_t(str)* t = loa_create(str);
+
+    char* s = strdup("Hello, World");
+
+    r = loa_put(str, t, s);
+    assert(r.rc != loa_end(t));
+
+    loa_val(t, r.it) = strdup("Something, else!");
+
+    k = loa_get(str, t, s);
+    assert(k != loa_end(t));
+    assert(loa_exists(t, k));
+
+    printf("key: %s\n", loa_key(t, k));
+    printf("val: %s\n", loa_val(t, k));
+
+    r = loa_put(str, t, strdup("Another key"));
+    loa_val(t, r.it) = strdup("Another value!");
+
+    // // XFORM #1:
+    // k = loa_begin(str, t);
+    // if (k != loa_end(t)) {
+    //     do {
+    //         printf("%s %s", loa_key(t, k), loa_val(t, k));
+    //         k = loa_next(str, t, k);
+    //     } while (k != loa_end(t));
+    // }
+
+    // // XFORM #2:
+    // k = loa_str_next(t, 0);
+    // if (k != t->asize) {
+    //     do {
+    //         printf("%s %s", t->keys[k], t->vals[k]);
+    //         k = loa_str_next(str, t, k);
+    //     } while (k != t->asize);
+    // }
+
+    // // XFORM #3:
+    // do { ++k } while (k != t->asize && loa__live(t->msks, k);
+    // if (k != t->asize) {
+    //     do {
+    //         printf("%s %s", t->keys[k], t->vals[k]);
+    //         do { ++k } while (k != t->asize && loa__live(t->msks, k);
+    //     } while (k != t->asize);
+    // }
+
+    for (k = loa_begin(str, t); k != loa_end(t); k = loa_next(str, t, k)) {
+        printf("'%s' -> '%s'\n", loa_key(t, k), loa_val(t, k));
+    }
+
+    loa_destroy(str, t);
+
+#if 0
+    loa_result_t r;
     loa_iter_t   k;
     loa_table_t(s32)*   t = loa_create(s32);
 
@@ -106,5 +161,6 @@ int main(int argc, char** argv) {
 
     loa_destroy(s32, t);
     qdestroy(q);
+#endif
     return 0;
 }
