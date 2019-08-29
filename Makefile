@@ -1,8 +1,12 @@
 build: debug release
 
+.PHONY: test
+test: debug
+	./build/debug/c++table
+
 .PHONY: run
 run: debug
-	./build/debug/bin/lesschess
+	echo "TODO: debug"
 
 .PHONY: debug
 debug: build/debug

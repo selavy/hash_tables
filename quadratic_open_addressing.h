@@ -34,6 +34,7 @@ typedef struct qoa_result_t {
     ms[(i)/4] &= ~(1u << (2*((i) % 4) + 1)); \
     ms[(i)/4] |=  (1u << (2*((i) % 4)    )); \
 } while (0)
+#define qoa__next_index(i) (2*(i)+1)
 
 
 #define QOA__TYPES(name, table_t, key_t, val_t) \
@@ -128,7 +129,7 @@ typedef struct qoa_result_t {
                     vals[h] = ovals[i];                                         \
                     break;                                                      \
                 }                                                               \
-                h = (h + 1) & m;                                                \
+                h = qoa__next_index(h) & m;                                     \
             }                                                                   \
         }                                                                       \
         t->keys = keys; t->vals = vals; t->msks = msks;                         \

@@ -15,3 +15,11 @@ add_executable(tables
     )
 set_target_properties(tables PROPERTIES C_STANDARD 11)
 # cset_target_properties(tables PROPERTIES CXX_STANDARD 17)
+
+add_executable(c++table
+    c++/main.cpp
+    c++/catch.hpp
+    c++/table_test.cpp
+    c++/table.h
+    )
+set_target_properties(c++table PROPERTIES CXX_STANDARD 17)
