@@ -2,7 +2,7 @@ build: debug release
 
 .PHONY: test
 test: debug
-	./build/debug/unittest
+	./build/debug/tests/unittest
 
 .PHONY: run
 run: debug

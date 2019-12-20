@@ -7,6 +7,7 @@ project(tables
 
 add_subdirectory(third_party)
 add_subdirectory(include)
+add_subdirectory(tests)
 
 # add_executable(tables
 #     main.c
