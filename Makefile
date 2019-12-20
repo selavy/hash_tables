@@ -1,8 +1,14 @@
+CC=gcc-8
+CXX=g++-8
 build: debug release
 
 .PHONY: test
 test: debug
 	./build/debug/tests/unittest
+
+.PHONY: gdbtest
+gdbtest: debug
+	gdb ./build/debug/tests/unittest
 
 .PHONY: run
 run: debug
