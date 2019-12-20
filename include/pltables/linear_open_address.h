@@ -93,7 +93,7 @@ public:
                                              mapped_type value) noexcept
     {
         if (_size >= _cutoff)
-            if (!_resize_fast(_size != 0u ? 2u * _size : MinTableSize))
+            if (!_resize_fast(_size != 0u ? 2u * _asize : MinTableSize))
                 return std::make_pair(end(), InsertResult::Error);
         ++_size;
         assert(_asize > _size);
@@ -162,12 +162,16 @@ private:
             if (!_is_alive(oldflgs, i))
                 continue;
             size_t j = hashfn(oldkeys[i]) & mask;
-            for (; !_is_alive(flgs, j); j = (j + 1) & mask)
-                ;
-            assert(_is_alive(flgs, j));
-            _animate(flgs, j);
+            for (;;) {
+                if (!_is_alive(flgs, j))
+                    break;
+                assert(!_is_tombstone(flgs, j));
+                j = (j + 1) & mask;
+            }
+            assert(!_is_alive(flgs, j));
+            _set_live(flgs, j);
             keys[j] = oldkeys[i];
-            vals[j] = oldvals[j];
+            vals[j] = oldvals[i];
         }
         _flags = flgs;
         _keys = keys;
@@ -193,6 +197,12 @@ private:
     {
         constexpr size_t n = sizeof(*flags);
         flags[i / n] &= ~(1u << (2 * (i % n) + 1));
+        flags[i / n] |= (1u << (2 * (i % n)));
+    }
+
+    static void _set_live(size_t* flags, size_t i) noexcept
+    {
+        constexpr size_t n = sizeof(*flags);
         flags[i / n] |= (1u << (2 * (i % n)));
     }
 

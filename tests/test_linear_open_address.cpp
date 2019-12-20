@@ -24,7 +24,7 @@ TEST_CASE("Resize changes table size")
     REQUIRE(table.capacity() == 16u);
 }
 
-TEST_CASE("Find key")
+TEST_CASE("Insert and Find keys")
 {
     using IntTable = loatable<int, int>;
     IntTable table;
@@ -48,5 +48,12 @@ TEST_CASE("Find key")
         REQUIRE(result.first != table.end());
         REQUIRE(*(*result.first).first  == 1);
         REQUIRE(*(*result.first).second == 42); // NOTE: value *not* changed
+    }
+
+    for (int i = 2; i < 1024; ++i) {
+        auto result = table.insert(i, i + 55);
+        REQUIRE(result.second == IntTable::InsertResult::Inserted);
+        REQUIRE(*(*result.first).first  == i);
+        REQUIRE(*(*result.first).second == i + 55);
     }
 }
