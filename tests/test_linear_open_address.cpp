@@ -26,10 +26,17 @@ TEST_CASE("Resize changes table size")
 
 TEST_CASE("Find key")
 {
-    loatable<int, int> table;
-    loatable<int, int>::iterator it = table.find(42);
+    using IntTable = loatable<int, int>;
+    IntTable table;
+    IntTable::iterator it = table.find(42);
     REQUIRE(it == table.end());
     table.resize(8u);
     it = table.find(55);
     REQUIRE(it == table.end());
+
+    auto result = table.insert(1, 42);
+    REQUIRE(result.second == IntTable::InsertResult::Inserted);
+    REQUIRE(result.first != table.end());
+    REQUIRE(*(*result.first).first  == 1);
+    REQUIRE(*(*result.first).second == 42);
 }

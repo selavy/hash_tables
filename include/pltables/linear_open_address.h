@@ -22,6 +22,14 @@ class loatable : private Hash, private KeyEq
     constexpr static size_t MinTableSize = 8;
 
 public:
+    enum class InsertResult
+    {
+        Error = -1,
+        Present = 0,
+        Inserted = 1,
+        ReusedSlot = 2,
+    };
+
     struct iterator;
 
     using key_type = Key;
@@ -31,12 +39,12 @@ public:
     using key_equal = KeyEq;
 
     constexpr loatable() noexcept = default;
-
     constexpr size_t capacity() const noexcept { return _asize; }
     constexpr size_t size() const noexcept { return _size; }
     constexpr bool empty() const noexcept { return _size == 0u; }
     hasher hash_function() const noexcept { return *this; }
     key_equal key_eq() const noexcept { return *this; }
+
     bool resize(size_t newsize)
     {
         newsize = std::max(newsize, _cutoff);
@@ -51,7 +59,7 @@ public:
             return end();
         const auto* flags = _flags;
         const auto* keys = _keys;
-        const auto mask = _asize - 1;
+        const size_t mask = _asize - 1;
         auto keyeq = key_eq();
         size_t i = hash_function()(key) & mask;
         for (;;) {
@@ -80,6 +88,38 @@ public:
     }
 
     constexpr iterator end() noexcept { return { this, _asize }; }
+
+    std::pair<iterator, InsertResult> insert(key_type key,
+                                             mapped_type value) noexcept
+    {
+        if (_size <= _cutoff)
+            if (!_resize_fast(_size ? 2*_size : MinTableSize))
+                return std::make_pair(end(), InsertResult::Error);
+        ++_size;
+        assert(_asize > _size);
+
+        const size_t mask = _asize - 1;
+        auto* flags = _flags;
+        auto* keys = _keys;
+        auto* vals = _vals;
+        auto keyeq = key_eq();
+        size_t i = hash_function()(key) & mask;
+        for (;;) {
+            if (!_is_alive(flags, i)) {
+                auto result = _is_tombstone(flags, i) ? InsertResult::ReusedSlot
+                                                      : InsertResult::Inserted;
+                // NOTE: key and value are IsTriviallyCopyable
+                keys[i] = key;
+                vals[i] = value;
+                _animate(flags, i);
+                return std::make_pair(iterator{ this, i }, result);
+            } else if (keyeq(key, keys[i])) {
+                return std::make_pair(iterator{ this, i },
+                                      InsertResult::Present);
+            }
+            i = (i + 1) & mask;
+        }
+    }
 
 private:
     static constexpr size_t _roundup_pow_2(size_t x) noexcept
