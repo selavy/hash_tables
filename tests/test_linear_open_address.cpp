@@ -34,9 +34,19 @@ TEST_CASE("Find key")
     it = table.find(55);
     REQUIRE(it == table.end());
 
-    auto result = table.insert(1, 42);
-    REQUIRE(result.second == IntTable::InsertResult::Inserted);
-    REQUIRE(result.first != table.end());
-    REQUIRE(*(*result.first).first  == 1);
-    REQUIRE(*(*result.first).second == 42);
+    {
+        auto result = table.insert(1, 42);
+        REQUIRE(result.second == IntTable::InsertResult::Inserted);
+        REQUIRE(result.first != table.end());
+        REQUIRE(*(*result.first).first  == 1);
+        REQUIRE(*(*result.first).second == 42);
+    }
+
+    {
+        auto result = table.insert(1, 43);
+        REQUIRE(result.second == IntTable::InsertResult::Present);
+        REQUIRE(result.first != table.end());
+        REQUIRE(*(*result.first).first  == 1);
+        REQUIRE(*(*result.first).second == 42); // NOTE: value *not* changed
+    }
 }

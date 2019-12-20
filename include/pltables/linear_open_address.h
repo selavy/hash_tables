@@ -92,8 +92,8 @@ public:
     std::pair<iterator, InsertResult> insert(key_type key,
                                              mapped_type value) noexcept
     {
-        if (_size <= _cutoff)
-            if (!_resize_fast(_size ? 2*_size : MinTableSize))
+        if (_size >= _cutoff)
+            if (!_resize_fast(_size != 0u ? 2u * _size : MinTableSize))
                 return std::make_pair(end(), InsertResult::Error);
         ++_size;
         assert(_asize > _size);
@@ -119,6 +119,7 @@ public:
             }
             i = (i + 1) & mask;
         }
+        __builtin_unreachable();
     }
 
 private:
@@ -156,7 +157,7 @@ private:
         const auto* oldkeys = _keys;
         const auto* oldvals = _vals;
         const auto oldasize = _asize;
-        const auto mask = newsize - 1u;
+        const size_t mask = newsize - 1;
         for (size_t i = 0; i < _asize; ++i) {
             if (!_is_alive(oldflgs, i))
                 continue;
