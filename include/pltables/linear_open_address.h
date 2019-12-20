@@ -95,7 +95,6 @@ public:
         if (_size >= _cutoff)
             if (!_resize_fast(_size != 0u ? 2u * _asize : MinTableSize))
                 return std::make_pair(end(), InsertResult::Error);
-        ++_size;
         assert(_asize > _size);
 
         const size_t mask = _asize - 1;
@@ -112,6 +111,7 @@ public:
                 keys[i] = key;
                 vals[i] = value;
                 _animate(flags, i);
+                ++_size;
                 return std::make_pair(iterator{ this, i }, result);
             } else if (keyeq(key, keys[i])) {
                 return std::make_pair(iterator{ this, i },

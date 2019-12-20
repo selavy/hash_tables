@@ -40,6 +40,7 @@ TEST_CASE("Insert and Find keys")
         REQUIRE(result.first != table.end());
         REQUIRE(*(*result.first).first  == 1);
         REQUIRE(*(*result.first).second == 42);
+        REQUIRE(table.size() == 1u);
     }
 
     {
@@ -48,6 +49,7 @@ TEST_CASE("Insert and Find keys")
         REQUIRE(result.first != table.end());
         REQUIRE(*(*result.first).first  == 1);
         REQUIRE(*(*result.first).second == 42); // NOTE: value *not* changed
+        REQUIRE(table.size() == 1u);
     }
 
     for (int i = 2; i < 1024; ++i) {
@@ -55,5 +57,6 @@ TEST_CASE("Insert and Find keys")
         REQUIRE(result.second == IntTable::InsertResult::Inserted);
         REQUIRE(*(*result.first).first  == i);
         REQUIRE(*(*result.first).second == i + 55);
+        REQUIRE(table.size() == size_t(i));
     }
 }
