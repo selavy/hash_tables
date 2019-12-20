@@ -52,11 +52,22 @@ TEST_CASE("Insert and Find keys")
         REQUIRE(table.size() == 1u);
     }
 
-    for (int i = 2; i < 1024; ++i) {
+    constexpr int N1 = 1024;
+    for (int i = 2; i < N1; ++i) {
         auto result = table.insert(i, i + 55);
         REQUIRE(result.second == IntTable::InsertResult::Inserted);
         REQUIRE(*(*result.first).first  == i);
         REQUIRE(*(*result.first).second == i + 55);
         REQUIRE(table.size() == size_t(i));
+    }
+
+    for (int i = N1; i < N1 + 1024; ++i) {
+        auto it = table.find(i);
+        REQUIRE(it == table.end());
+    }
+    for (int i = 2; i < N1; ++i) {
+        auto it = table.find(i);
+        REQUIRE(*(*it).first  == i);
+        REQUIRE(*(*it).second == i + 55);
     }
 }
