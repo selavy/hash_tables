@@ -2,7 +2,7 @@ build: debug release
 
 .PHONY: test
 test: debug
-	./build/debug/c++table
+	./build/debug/unittest
 
 .PHONY: run
 run: debug
