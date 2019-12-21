@@ -6,6 +6,10 @@
 #include <climits>
 #include <iostream>
 
+// TODO: add find test with tombstones in the tables
+// TODO: try with different hashing functions
+// TODO: add find test where key is missing
+
 std::random_device rd;
 std::mt19937_64 gen;
 bool init = false;
