@@ -446,13 +446,12 @@ public:
         return *this;
     }
 
-    // TODO: fix me
     // NOTE: proxy iterator!
-    // constexpr const table_type::value_type operator*() noexcept
-    // {
-    //     return std::make_pair(std::cref(_table->_keys[_index]),
-    //                           std::ref(_table->_vals[_index]));
-    // }
+    constexpr const table_type::value_type operator*() noexcept
+    {
+        return std::make_pair(std::cref(_table->_keys[_index]),
+                              std::ref(_table->_vals[_index]));
+    }
 
     const table_type::key_type& key() const noexcept
     {

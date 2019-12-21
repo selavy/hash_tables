@@ -2,7 +2,6 @@
 #include <pltables/linear_open_address.h>
 #include <unordered_map>
 
-
 TEST_CASE("Default constructed table is empty")
 {
     loatable<int, int> table;
@@ -40,7 +39,7 @@ TEST_CASE("Insert and Find keys")
         auto result = table.insert(1, 42);
         REQUIRE(result.second == IntTable::InsertResult::Inserted);
         REQUIRE(result.first != table.end());
-        REQUIRE((*result.first).first  == 1);
+        REQUIRE((*result.first).first == 1);
         REQUIRE((*result.first).second == 42);
         REQUIRE(table.size() == 1u);
     }
@@ -49,7 +48,7 @@ TEST_CASE("Insert and Find keys")
         auto result = table.insert(1, 43);
         REQUIRE(result.second == IntTable::InsertResult::Present);
         REQUIRE(result.first != table.end());
-        REQUIRE((*result.first).first  == 1);
+        REQUIRE((*result.first).first == 1);
         REQUIRE((*result.first).second == 42); // NOTE: value *not* changed
         REQUIRE(table.size() == 1u);
     }
@@ -58,7 +57,7 @@ TEST_CASE("Insert and Find keys")
     for (int i = 2; i < N1; ++i) {
         auto result = table.insert(i, i + 55);
         REQUIRE(result.second == IntTable::InsertResult::Inserted);
-        REQUIRE((*result.first).first  == i);
+        REQUIRE((*result.first).first == i);
         REQUIRE((*result.first).second == i + 55);
         REQUIRE(table.size() == size_t(i));
     }
@@ -69,8 +68,20 @@ TEST_CASE("Insert and Find keys")
     }
     for (int i = 2; i < N1; ++i) {
         auto it = table.find(i);
-        REQUIRE((*it).first  == i);
+        REQUIRE((*it).first == i);
         REQUIRE((*it).second == i + 55);
+    }
+
+    SECTION("const iterator")
+    {
+        const IntTable& ctable = table;
+        IntTable::const_iterator it = ctable.find(2);
+        IntTable::const_iterator endIt = ctable.end();
+        REQUIRE(it != endIt);
+        REQUIRE(it.key() == 2);
+        REQUIRE(it.value() == 2 + 55);
+        REQUIRE((*it).first == 2);
+        REQUIRE((*it).second == 2 + 55);
     }
 }
 
@@ -125,7 +136,7 @@ TEST_CASE("Insert and erase keys")
     REQUIRE(table.size() == size_t(N));
     REQUIRE(table.size() == t2.size());
 
-    for (int i = 0; i < 10*N; ++i) {
+    for (int i = 0; i < 10 * N; ++i) {
         auto result = table.insert(i, i + 3);
         if (i < N) {
             REQUIRE(result.second == Table::InsertResult::Present);
@@ -145,7 +156,7 @@ TEST_CASE("Insert and erase keys")
         auto it2 = t2.find(p1.first);
         REQUIRE(it2 != t2.end());
         auto& p2 = *it2;
-        REQUIRE(p1.first  == p2.first);
+        REQUIRE(p1.first == p2.first);
         REQUIRE(p1.second == p2.second);
     }
 }
