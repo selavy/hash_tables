@@ -1,6 +1,12 @@
 CC=gcc-8
 CXX=g++-8
+
+
 build: debug release
+
+.PHONY: bench
+bench: release
+	./build/release/bench/bench-loa
 
 .PHONY: stress
 stress: debug
