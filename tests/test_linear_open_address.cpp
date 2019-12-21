@@ -108,8 +108,8 @@ TEST_CASE("Insert and erase keys")
             REQUIRE(*(*result.first).second == i + 2);
         } else {
             REQUIRE(result.second == Table::InsertResult::Present);
-            REQUIRE(*(*result.first).first == i);
-            REQUIRE(*(*result.first).second == i + 1);
+            REQUIRE(result.first.key() == i);
+            REQUIRE(result.first.val() == i + 1);
         }
     }
     REQUIRE(table.size() == size_t(N));

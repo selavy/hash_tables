@@ -303,6 +303,22 @@ public:
         return std::make_pair(&_table->_keys[_index], &_table->_vals[_index]);
     }
 
+    const table_type::key_type& key() const noexcept
+    {
+        assert(_table != nullptr);
+        assert(_index != _table->capacity());
+        return _table->_keys[_index];
+    }
+
+    table_type::mapped_type& value() const noexcept
+    {
+        assert(_table != nullptr);
+        assert(_index != _table->capacity());
+        return _table->_vals[_index];
+    }
+
+    table_type::mapped_type& val() const noexcept { return value(); }
+
     constexpr iterator operator++() noexcept
     {
         ++_index;
@@ -337,4 +353,21 @@ public:
     {
         return lhs._table != rhs._table || lhs._index != rhs._index;
     }
+
+    constexpr void swap(iterator other) noexcept
+    {
+        iterator tmp{ *this };
+        (*this) = other;
+        other = tmp;
+    }
 };
+
+// namespace std {
+//
+// template <class Key, class T, class Hash, class KeyEq>
+// void swap(loatable<Key, T, Hash, KeyEq>::iterator a, loatable<Key, T, Hash,
+// KeyEq>::iterator b)
+// {
+//     a.swap(b);
+// }
+// }
