@@ -107,6 +107,8 @@ void tableInit(KlibTable*& table)
     ->Args({ 1 << 13, 1 << 10 }) \
     ->Args({ 1 << 14, 1 << 10 }) \
     ->Args({ 1 << 15, 1 << 10 }) \
+    ->Args({ 1 << 20, 1 << 10 }) \
+    ->Args({ 1 << 21, 1 << 10 }) \
 
 
 template <class Table>

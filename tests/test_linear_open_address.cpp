@@ -2,7 +2,7 @@
 #include <pltables/linear_open_address.h>
 #include <unordered_map>
 
-TEST_CASE("Default constructed table is empty")
+TEST_CASE("LOA - Default constructed table is empty", "[loa]")
 {
     loatable<int, int> table;
     REQUIRE(table.capacity() == 0u);
@@ -10,7 +10,7 @@ TEST_CASE("Default constructed table is empty")
     REQUIRE(table.empty() == true);
 }
 
-TEST_CASE("Resize changes table size")
+TEST_CASE("LOA - Resize changes table size")
 {
     loatable<int, int> table;
     REQUIRE(table.capacity() == 0u);
@@ -25,7 +25,7 @@ TEST_CASE("Resize changes table size")
     REQUIRE(table.capacity() == 16u);
 }
 
-TEST_CASE("Insert and Find keys")
+TEST_CASE("LOA - Insert and Find keys")
 {
     using IntTable = loatable<int, int>;
     IntTable table;
@@ -85,7 +85,7 @@ TEST_CASE("Insert and Find keys")
     }
 }
 
-TEST_CASE("Insert and erase keys")
+TEST_CASE("LOA - Insert and erase keys")
 {
     using Table = loatable<int, int>;
     Table table;
