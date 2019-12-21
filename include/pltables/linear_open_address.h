@@ -60,26 +60,31 @@ public:
 
     bool resize(size_t newsize)
     {
-        newsize = std::max(newsize, _cutoff);
-        newsize = _roundup_pow_2(newsize);
+        newsize = _roundup_pow_2(std::max(newsize, _cutoff + 1));
         return _resize_fast(newsize);
+    }
+
+    bool reserve(size_t newsize)
+    {
+        newsize = std::max(newsize, 1);
+        newsize = std::max(newsize, _asize);
+        newsize = _roundup_pow_2(newsize);
+        return  _resize_fast(newsize);
     }
 
     constexpr iterator find(key_type key) noexcept
     {
-        // TODO: always allocate?
-        if (!_flags)
-            return end();
         const auto* flags = _flags;
         const auto* keys = _keys;
         const size_t mask = _asize - 1;
         auto keyeq = key_eq();
         size_t i = hash_function()(key) & mask;
+        if (!_flags) // TODO: always allocate?
+            return end();
         for (;;) {
             if (_is_alive(flags, i)) {
-                if (keyeq(key, keys[i])) {
+                if (keyeq(key, keys[i]))
                     return { this, i };
-                }
             } else if (!_is_tombstone(flags, i)) {
                 break;
             }
@@ -98,11 +103,10 @@ public:
     std::pair<iterator, InsertResult> insert(key_type key,
                                              mapped_type value) noexcept
     {
-        if (_size >= _cutoff)
+        if (_used >= _cutoff)
             if (!_resize_fast(_size != 0u ? 2u * _asize : MinTableSize))
                 return std::make_pair(end(), InsertResult::Error);
         assert(_asize > _size);
-
         const size_t mask = _asize - 1;
         auto* flags = _flags;
         auto* keys = _keys;
@@ -118,6 +122,7 @@ public:
                 vals[i] = value;
                 _animate(flags, i);
                 ++_size;
+                ++_used;
                 return std::make_pair(iterator{ this, i }, result);
             } else if (keyeq(key, keys[i])) {
                 return std::make_pair(iterator{ this, i },
@@ -203,6 +208,7 @@ private:
         _vals = vals;
         _asize = newsize;
         _cutoff = newsize * MaxLoadFactor;
+        _used = _size;
         return true;
     }
 
@@ -254,6 +260,7 @@ private:
     mapped_type* _vals = nullptr;
     size_t _size = 0;
     size_t _asize = 0;
+    size_t _used = 0;
     size_t _cutoff = 0;
 };
 
@@ -312,14 +319,14 @@ public:
     const table_type::key_type& key() const noexcept
     {
         assert(_table != nullptr);
-        assert(_index != _table->capacity());
+        assert(_index != _table->_asize);
         return _table->_keys[_index];
     }
 
     table_type::mapped_type& value() const noexcept
     {
         assert(_table != nullptr);
-        assert(_index != _table->capacity());
+        assert(_index != _table->_asize);
         return _table->_vals[_index];
     }
 
