@@ -298,6 +298,7 @@ public:
         return *this;
     }
 
+    // NOTE: proxy iterator!
     constexpr table_type::value_type operator*() noexcept
     {
         return std::make_pair(&_table->_keys[_index], &_table->_vals[_index]);

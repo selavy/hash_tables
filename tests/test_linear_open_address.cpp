@@ -113,4 +113,16 @@ TEST_CASE("Insert and erase keys")
         }
     }
     REQUIRE(table.size() == size_t(N));
+
+    for (int i = 0; i < 10*N; ++i) {
+        auto result = table.insert(i, i + 3);
+        if (i < N) {
+            REQUIRE(result.second == Table::InsertResult::Present);
+            REQUIRE(result.first.key() == i);
+        } else {
+            REQUIRE(result.second == Table::InsertResult::Inserted);
+            REQUIRE(result.first.key() == i);
+            REQUIRE(result.first.value() == i + 3);
+        }
+    }
 }
