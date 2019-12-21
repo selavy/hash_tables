@@ -72,6 +72,7 @@ public:
         return  _resize_fast(newsize);
     }
 
+    // TODO: return const_iterator
     constexpr iterator find(key_type key) noexcept
     {
         const auto* flags = _flags;
