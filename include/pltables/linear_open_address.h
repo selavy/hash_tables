@@ -39,6 +39,18 @@ public:
     using key_equal = KeyEq;
 
     constexpr loatable() noexcept = default;
+    ~loatable() noexcept
+    {
+        free(_flags);
+        free(_keys);
+        free(_vals);
+#ifndef NDEBUG
+        _flags = nullptr;
+        _keys = nullptr;
+        _vals = nullptr;
+        _asize = _size = _cutoff = 0;
+#endif
+    }
     constexpr size_t capacity() const noexcept { return _asize; }
     constexpr size_t size() const noexcept { return _size; }
     constexpr bool empty() const noexcept { return _size == 0u; }
@@ -122,6 +134,22 @@ public:
         __builtin_unreachable();
     }
 
+    constexpr void erase(iterator it) noexcept
+    {
+        assert(it != end());
+        _set_tombstone(_flags, it._index);
+        --_size;
+    }
+
+    constexpr size_t erase(key_type key) noexcept
+    {
+        auto it = find(key);
+        if (it == end())
+            return 0u;
+        erase(it);
+        return 1u;
+    }
+
 private:
     static constexpr size_t _roundup_pow_2(size_t x) noexcept
     {
@@ -173,6 +201,9 @@ private:
             keys[j] = oldkeys[i];
             vals[j] = oldvals[i];
         }
+        free(_flags);
+        free(_keys);
+        free(_vals);
         _flags = flgs;
         _keys = keys;
         _vals = vals;
@@ -206,6 +237,13 @@ private:
         flags[i / n] |= (1u << (2 * (i % n)));
     }
 
+    static void _set_tombstone(size_t* flags, size_t i) noexcept
+    {
+        constexpr size_t n = sizeof(*flags);
+        flags[i / n] &= ~(1u << (2 * (i % n)));
+        flags[i / n] |= (1u << (2 * (i % n) + 1));
+    }
+
 private:
     size_t* _flags = nullptr;
     key_type* _keys = nullptr;
@@ -219,6 +257,7 @@ template <class Key, class T, class Hash, class KeyEq>
 class loatable<Key, T, Hash, KeyEq>::iterator
 {
     using table_type = loatable<Key, T, Hash, KeyEq>;
+    friend class loatable<Key, T, Hash, KeyEq>;
     table_type* _table = nullptr;
     size_t _index = 0;
 

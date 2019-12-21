@@ -10,6 +10,10 @@ test: debug
 gdbtest: debug
 	gdb ./build/debug/tests/unittest
 
+.PHONY: memtest
+memtest: debug
+	valgrind --leak-check=full --show-leak-kinds=all ./build/debug/tests/unittest
+
 .PHONY: run
 run: debug
 	echo "TODO: debug"
@@ -24,7 +28,7 @@ release: build/release
 
 build/debug:
 	mkdir -p build/debug
-	cd build/debug && CC=$(CC) CXX=$(CXX) cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ../..
+	cd build/debug && CC=$(CC) CXX=$(CXX) cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=Off ../..
 
 build/release:
 	mkdir -p build/release

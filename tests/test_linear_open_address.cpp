@@ -71,3 +71,46 @@ TEST_CASE("Insert and Find keys")
         REQUIRE(*(*it).second == i + 55);
     }
 }
+
+TEST_CASE("Insert and erase keys")
+{
+    using Table = loatable<int, int>;
+    Table table;
+
+    constexpr int N = 256;
+    for (int i = 0; i < N; ++i) {
+        auto result = table.insert(i, i + 1);
+        REQUIRE(result.second == Table::InsertResult::Inserted);
+    }
+    REQUIRE(table.size() == size_t(N));
+
+    for (int i = 0; i < N; i += 2) {
+        auto result = table.erase(i);
+        REQUIRE(result == 1u);
+    }
+
+    for (int i = 0; i < N; ++i) {
+        auto it = table.find(i);
+        if (i % 2 == 0) {
+            REQUIRE(it == table.end());
+        } else {
+            REQUIRE(it != table.end());
+            REQUIRE(*(*it).first == i);
+            REQUIRE(*(*it).second == i + 1);
+        }
+    }
+
+    for (int i = 0; i < N; ++i) {
+        auto result = table.insert(i, i + 2);
+        if (i % 2 == 0) {
+            REQUIRE(result.second == Table::InsertResult::ReusedSlot);
+            REQUIRE(*(*result.first).first == i);
+            REQUIRE(*(*result.first).second == i + 2);
+        } else {
+            REQUIRE(result.second == Table::InsertResult::Present);
+            REQUIRE(*(*result.first).first == i);
+            REQUIRE(*(*result.first).second == i + 1);
+        }
+    }
+    REQUIRE(table.size() == size_t(N));
+}
