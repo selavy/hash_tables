@@ -34,7 +34,8 @@ public:
 
     using key_type = Key;
     using mapped_type = T;
-    using value_type = std::pair<const Key*, T*>;
+    using value_type =
+      std::pair<std::reference_wrapper<const Key>, std::reference_wrapper<T>>;
     using hasher = Hash;
     using key_equal = KeyEq;
 
@@ -89,14 +90,7 @@ public:
 
     constexpr iterator begin() noexcept
     {
-        // TODO: fast forward to first element
-        const auto* flags = _flags;
-        size_t i = 0;
-        for (; i != _asize; ++i) {
-            if (_is_alive(flags, i))
-                break;
-        }
-        return { this, i };
+        return { this, _next_occupied_slot(0) };
     }
 
     constexpr iterator end() noexcept { return { this, _asize }; }
@@ -244,6 +238,16 @@ private:
         flags[i / n] |= (1u << (2 * (i % n) + 1));
     }
 
+    constexpr size_t _next_occupied_slot(size_t i) noexcept
+    {
+        assert(i != _asize);
+        for (i = i + 1; i != _asize; ++i) {
+            if (_is_alive(_flags, i))
+                break;
+        }
+        return i;
+    }
+
 private:
     size_t* _flags = nullptr;
     key_type* _keys = nullptr;
@@ -301,7 +305,8 @@ public:
     // NOTE: proxy iterator!
     constexpr table_type::value_type operator*() noexcept
     {
-        return std::make_pair(&_table->_keys[_index], &_table->_vals[_index]);
+        return std::make_pair(std::cref(_table->_keys[_index]),
+                              std::ref(_table->_vals[_index]));
     }
 
     const table_type::key_type& key() const noexcept
@@ -322,7 +327,7 @@ public:
 
     constexpr iterator operator++() noexcept
     {
-        ++_index;
+        _index = _table->_next_occupied_slot(_index);
         return *this;
     }
 
