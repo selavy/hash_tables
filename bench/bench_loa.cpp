@@ -72,8 +72,7 @@ static void insertData(StlTable& t, const IntPairVec& vs)
     }
 }
 
-// TODO: make find() and end() const
-static bool tableFind(/*const*/ LoaTable& t, int key)
+static bool tableFind(const LoaTable& t, int key)
 {
     return t.find(key) != t.end();
 }

@@ -30,7 +30,8 @@ public:
         ReusedSlot = 2,
     };
 
-    struct iterator;
+    class iterator;
+    class const_iterator;
 
     using key_type = Key;
     using mapped_type = T;
@@ -69,29 +70,18 @@ public:
         newsize = std::max(newsize, size_t(1));
         newsize = std::max(newsize, _asize);
         newsize = _roundup_pow_2(newsize);
-        return  _resize_fast(newsize);
+        return _resize_fast(newsize);
     }
 
-    // TODO: return const_iterator
+    constexpr const_iterator find(key_type key) const noexcept
+    {
+        return _cfind(key);
+    }
+
     constexpr iterator find(key_type key) noexcept
     {
-        const auto* flags = _flags;
-        const auto* keys = _keys;
-        const size_t mask = _asize - 1;
-        auto keyeq = key_eq();
-        size_t i = hash_function()(key) & mask;
-        if (!_flags) // TODO: always allocate?
-            return end();
-        for (;;) {
-            if (_is_alive(flags, i)) {
-                if (keyeq(key, keys[i]))
-                    return { this, i };
-            } else if (!_is_tombstone(flags, i)) {
-                break;
-            }
-            i = (i + 1) & mask;
-        }
-        return { this, _asize };
+        const_iterator it = _cfind(key);
+        return { this, it._index };
     }
 
     constexpr iterator begin() noexcept
@@ -99,7 +89,13 @@ public:
         return { this, _next_occupied_slot(0) };
     }
 
+    constexpr const_iterator begin() const noexcept
+    {
+        return { this, _next_occupied_slot(0) };
+    }
+
     constexpr iterator end() noexcept { return { this, _asize }; }
+    constexpr const_iterator end() const noexcept { return { this, _asize }; }
 
     std::pair<iterator, InsertResult> insert(key_type key,
                                              mapped_type value) noexcept
@@ -134,7 +130,7 @@ public:
         __builtin_unreachable();
     }
 
-    constexpr void erase(iterator it) noexcept
+    constexpr void erase(const_iterator it) noexcept
     {
         assert(it != end());
         _set_tombstone(_flags, it._index);
@@ -151,6 +147,28 @@ public:
     }
 
 private:
+    // TODO: return const_iterator
+    constexpr const_iterator _cfind(key_type key) const noexcept
+    {
+        const auto* flags = _flags;
+        const auto* keys = _keys;
+        const size_t mask = _asize - 1;
+        auto keyeq = key_eq();
+        size_t i = hash_function()(key) & mask;
+        if (!_flags) // TODO: always allocate?
+            return end();
+        for (;;) {
+            if (_is_alive(flags, i)) {
+                if (keyeq(key, keys[i]))
+                    return { this, i };
+            } else if (!_is_tombstone(flags, i)) {
+                break;
+            }
+            i = (i + 1) & mask;
+        }
+        return { this, _asize };
+    }
+
     static constexpr size_t _roundup_pow_2(size_t x) noexcept
     {
         x = std::max(x, MinTableSize);
@@ -376,12 +394,124 @@ public:
     }
 };
 
-// namespace std {
-//
-// template <class Key, class T, class Hash, class KeyEq>
-// void swap(loatable<Key, T, Hash, KeyEq>::iterator a, loatable<Key, T, Hash,
-// KeyEq>::iterator b)
-// {
-//     a.swap(b);
-// }
-// }
+template <class Key, class T, class Hash, class KeyEq>
+class loatable<Key, T, Hash, KeyEq>::const_iterator
+{
+    using table_type = loatable<Key, T, Hash, KeyEq>;
+    friend class loatable<Key, T, Hash, KeyEq>;
+    const table_type* _table = nullptr;
+    size_t _index = 0;
+
+public:
+    constexpr const_iterator() noexcept = default;
+
+    constexpr const_iterator(const table_type* table, size_t index) noexcept
+      : _table{ table },
+        _index{ index }
+    {
+    }
+
+    constexpr const_iterator(iterator other) noexcept : _table{ other._table },
+                                                        _index{ other._index }
+    {
+    }
+
+    constexpr const_iterator(const const_iterator& other) noexcept
+      : _table{ other._table },
+        _index{ other._index }
+    {
+    }
+
+    constexpr const_iterator(const_iterator&& other) noexcept
+      : _table{ other._table },
+        _index{ other._index }
+    {
+        other._table = nullptr;
+        other._index = 0;
+    }
+
+    constexpr const_iterator& operator=(const const_iterator& other) noexcept
+    {
+        _table = other._table;
+        _index = other._index;
+        return *this;
+    }
+
+    constexpr const_iterator& operator=(const_iterator&& other) noexcept
+    {
+        _table = other._table;
+        _index = other._index;
+        other._table = nullptr;
+        other._index = 0;
+        return *this;
+    }
+
+    // TODO: fix me
+    // NOTE: proxy iterator!
+    // constexpr const table_type::value_type operator*() noexcept
+    // {
+    //     return std::make_pair(std::cref(_table->_keys[_index]),
+    //                           std::ref(_table->_vals[_index]));
+    // }
+
+    const table_type::key_type& key() const noexcept
+    {
+        assert(_table != nullptr);
+        assert(_index != _table->_asize);
+        return _table->_keys[_index];
+    }
+
+    const table_type::mapped_type& value() const noexcept
+    {
+        assert(_table != nullptr);
+        assert(_index != _table->_asize);
+        return _table->_vals[_index];
+    }
+
+    table_type::mapped_type& val() const noexcept { return value(); }
+
+    constexpr const_iterator operator++() noexcept
+    {
+        _index = _table->_next_occupied_slot(_index);
+        return *this;
+    }
+
+    constexpr const_iterator operator++(int)noexcept
+    {
+        const_iterator tmp{ *this };
+        ++(*this);
+        return tmp;
+    }
+
+    constexpr const_iterator operator+=(size_t d) noexcept
+    {
+        _index += d;
+        return *this;
+    }
+
+    friend constexpr const_iterator operator+(const_iterator lhs,
+                                              size_t dist) noexcept
+    {
+        lhs += dist;
+        return lhs;
+    }
+
+    friend constexpr bool operator==(const_iterator lhs,
+                                     const_iterator rhs) noexcept
+    {
+        return lhs._table == rhs._table && lhs._index == rhs._index;
+    }
+
+    friend constexpr bool operator!=(const_iterator lhs,
+                                     const_iterator rhs) noexcept
+    {
+        return lhs._table != rhs._table || lhs._index != rhs._index;
+    }
+
+    constexpr void swap(const_iterator other) noexcept
+    {
+        const_iterator tmp{ *this };
+        (*this) = other;
+        other = tmp;
+    }
+};
