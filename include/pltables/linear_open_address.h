@@ -66,7 +66,7 @@ public:
 
     bool reserve(size_t newsize)
     {
-        newsize = std::max(newsize, 1);
+        newsize = std::max(newsize, size_t(1));
         newsize = std::max(newsize, _asize);
         newsize = _roundup_pow_2(newsize);
         return  _resize_fast(newsize);

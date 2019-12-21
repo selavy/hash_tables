@@ -5,12 +5,12 @@ import random
 
 
 class Op:
-    INSERT   = 0
-    ERASE    = 1
-    FIND     = 2
-    FINDMISS = 3
-    SIZE     = 4
-    MAX      = 5
+    INSERT = 0
+    ERASE  = 1
+    FIND   = 2
+    MISS   = 3
+    SIZE   = 4
+    MAX    = 5
 
 
 def parse_args():
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     for i in range(args.nops):
         op = random.randint(0, Op.MAX - 1)
         if not d and op == Op.FIND:
-            op = Op.FINDMISS
+            op = Op.MISS
 
         if op == Op.INSERT:
             k = random.randint(min_, max_)
@@ -46,14 +46,13 @@ if __name__ == '__main__':
             except KeyError:
                 r = 0
             print(f"ERASE {k} {r}")
-
         elif op == Op.FIND:
             i = random.randint(0, len(d) - 1)
             for j, k in enumerate(d.keys()):
                 if j == i:
                     break
             print(f"FIND {k} {d[k]}")
-        elif op == Op.FINDMISS:
+        elif op == Op.MISS:
             while 1:
                 k = random.randint(min_, max_)
                 if k not in d:

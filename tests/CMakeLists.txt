@@ -7,3 +7,7 @@ target_link_libraries(unittest
         Catch2
         PLTables
     )
+
+add_executable(stress stresstest.cpp)
+set_target_properties(stress PROPERTIES CXX_STANDARD 17)
+target_link_libraries(stress PUBLIC PLTables)

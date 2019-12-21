@@ -2,6 +2,10 @@ CC=gcc-8
 CXX=g++-8
 build: debug release
 
+.PHONY: stress
+stress: debug
+	./tests/stresstest.py -n 100000 | ./build/debug/tests/stress
+
 .PHONY: test
 test: debug
 	./build/debug/tests/unittest
