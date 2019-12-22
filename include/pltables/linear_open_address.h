@@ -351,7 +351,7 @@ public:
 
     table_type::mapped_type& val() const noexcept { return value(); }
 
-    constexpr iterator operator++() noexcept
+    constexpr iterator& operator++() noexcept
     {
         _index = _table->_next_occupied_slot(_index);
         return *this;
@@ -469,7 +469,7 @@ public:
 
     table_type::mapped_type& val() const noexcept { return value(); }
 
-    constexpr const_iterator operator++() noexcept
+    constexpr const_iterator& operator++() noexcept
     {
         _index = _table->_next_occupied_slot(_index);
         return *this;

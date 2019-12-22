@@ -7,4 +7,7 @@ TEST_CASE("KLIB - Default constructed table is empty", "[klib]")
     Table table;
     REQUIRE(table.size() == 0);
     REQUIRE(table.empty() == true);
+
+    int result = table.resize(32);
+    REQUIRE(result == 0);
 }
