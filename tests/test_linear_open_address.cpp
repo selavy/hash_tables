@@ -1,6 +1,8 @@
 #include <catch2/catch.hpp>
 #include <pltables/linear_open_address.h>
 #include <unordered_map>
+#include <vector>
+#include <algorithm>
 
 TEST_CASE("LOA - Default constructed table is empty", "[loa]")
 {
@@ -158,5 +160,32 @@ TEST_CASE("LOA - Insert and erase keys")
         auto& p2 = *it2;
         REQUIRE(p1.first == p2.first);
         REQUIRE(p1.second == p2.second);
+    }
+}
+
+TEST_CASE("iteration covers all elements")
+{
+    constexpr size_t N = 42;
+    using Table = loatable<int, int>;
+    Table table;
+
+    for (size_t i = 0; i < N; ++i) {
+        table.insert(i, i + 1);
+    }
+
+    std::vector<int> ks;
+    std::vector<int> vs;
+    for (auto p : table) {
+        ks.push_back(p.first);
+        vs.push_back(p.second);
+    }
+    REQUIRE(ks.size() == N);
+    REQUIRE(vs.size() == N);
+    std::sort(ks.begin(), ks.end());
+    std::sort(vs.begin(), vs.end());
+
+    for (size_t i = 0; i < N; ++i) {
+        REQUIRE(ks[i] == i);
+        REQUIRE(vs[i] == i + 1);
     }
 }

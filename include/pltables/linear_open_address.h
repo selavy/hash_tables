@@ -86,18 +86,29 @@ public:
 
     constexpr iterator begin() noexcept
     {
-        // TODO: FIX ME: begin will skip the first element if 0 is occupied
-        return { this, _next_occupied_slot(0) };
+        size_t i;
+        for (i = 0; i < _asize; ++i) {
+            if (_is_alive(_flags, i))
+                break;
+        }
+        return { this, i };
     }
 
-    constexpr const_iterator begin() const noexcept
+    constexpr const_iterator begin() const noexcept { return cbegin(); }
+
+    constexpr const_iterator cbegin() const noexcept
     {
-        // TODO: FIX ME: begin will skip the first element if 0 is occupied
-        return { this, _next_occupied_slot(0) };
+        size_t i;
+        for (i = 0; i < _asize; ++i) {
+            if (_is_alive(_flags, i))
+                break;
+        }
+        return { this, i };
     }
 
     constexpr iterator end() noexcept { return { this, _asize }; }
     constexpr const_iterator end() const noexcept { return { this, _asize }; }
+    constexpr const_iterator cend() const noexcept { return { this, _asize }; }
 
     std::pair<iterator, InsertResult> insert(key_type key,
                                              mapped_type value) noexcept
