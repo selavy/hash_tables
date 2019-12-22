@@ -187,6 +187,15 @@ public:
 
     iterator end() noexcept { return { this, h->n_buckets }; }
 
+    iterator insert(key_type key, value_type value)
+    {
+        int ret;
+        auto it = put(key, &ret);
+        if (ret >= 1)
+            it.value() = value;
+        return it;
+    }
+
     iterator put(key_type key, int* ret) noexcept
     {
         khint_t x;
@@ -204,7 +213,12 @@ public:
             }
         }
         {
-            khint_t k, i, site, last, mask = h->n_buckets - 1, step = 0;
+            khint_t k;
+            khint_t i;
+            khint_t site;
+            khint_t last;
+            khint_t mask = h->n_buckets - 1;
+            khint_t step = 0;
             x = site = h->n_buckets;
             k = Hash{}(key);
             i = k & mask;

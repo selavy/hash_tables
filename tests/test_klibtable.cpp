@@ -33,4 +33,11 @@ TEST_CASE("KLIB - Insert and Find")
         REQUIRE(it.key() == 42);
         REQUIRE(table.size() == 1);
     }
+
+    {
+        Table::iterator it = table.insert(44, 45);
+        REQUIRE(it != table.end());
+        REQUIRE(it.key() == 44);
+        REQUIRE(it.val() == 45);
+    }
 }
