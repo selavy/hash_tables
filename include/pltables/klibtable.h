@@ -183,9 +183,77 @@ public:
         return 0;
     }
 
-    // int put(key_type key, int* ret) noexcept {}
+    iterator begin() noexcept { return { this, _advance_index(-1) }; }
 
-    // void del(iterator x) noexcept {}
+    iterator end() noexcept { return { this, h->n_buckets }; }
+
+    iterator put(key_type key, int* ret) noexcept
+    {
+        khint_t x;
+        if (h->n_occupied >= h->upper_bound) { /* update the hash table */
+            if (h->n_buckets > (h->size << 1)) {
+                /* clear "deleted" elements */
+                if (resize(h->n_buckets - 1) < 0) {
+                    *ret = -1;
+                    return { this, h->n_buckets };
+                }
+            } /* expand the hash table */
+            else if (resize(h->n_buckets + 1) < 0) {
+                *ret = -1;
+                return { this, h->n_buckets };
+            }
+        }
+        {
+            khint_t k, i, site, last, mask = h->n_buckets - 1, step = 0;
+            x = site = h->n_buckets;
+            k = Hash{}(key);
+            i = k & mask;
+            if (__ac_isempty(h->flags, i))
+                x = i; /* for speed up */
+            else {
+                last = i;
+                while (!__ac_isempty(h->flags, i) &&
+                       (__ac_isdel(h->flags, i) || !KeyEq{}(h->keys[i], key))) {
+                    if (__ac_isdel(h->flags, i))
+                        site = i;
+                    i = (i + (++step)) & mask;
+                    if (i == last) {
+                        x = site;
+                        break;
+                    }
+                }
+                if (x == h->n_buckets) {
+                    if (__ac_isempty(h->flags, i) && site != h->n_buckets)
+                        x = site;
+                    else
+                        x = i;
+                }
+            }
+        }
+        if (__ac_isempty(h->flags, x)) { /* not present at all */
+            h->keys[x] = key;
+            __ac_set_isboth_false(h->flags, x);
+            ++h->size;
+            ++h->n_occupied;
+            *ret = 1;
+        } else if (__ac_isdel(h->flags, x)) { /* deleted */
+            h->keys[x] = key;
+            __ac_set_isboth_false(h->flags, x);
+            ++h->size;
+            *ret = 2;
+        } else
+            *ret = 0; /* Don't touch h->keys[x] if present and not deleted */
+        return { this, x };
+    }
+
+    void del(iterator it) noexcept
+    {
+        int32_t x = it._index;
+        if (x != h->n_buckets && !__ac_iseither(h->flags, x)) {
+            __ac_set_isdel_true(h->flags, x);
+            --h->size;
+        }
+    }
 
 private:
     constexpr int32_t _advance_index(int32_t i) const noexcept
@@ -283,4 +351,7 @@ public:
     {
         return lhs._table != rhs._table || lhs._index != rhs._index;
     }
+    key_type key() const noexcept { return _table->h->keys[_index]; }
+    value_type& val() noexcept { return _table->h->vals[_index]; }
+    value_type& value() noexcept { return val(); }
 };

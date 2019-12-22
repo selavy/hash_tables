@@ -11,3 +11,26 @@ TEST_CASE("KLIB - Default constructed table is empty", "[klib]")
     int result = table.resize(32);
     REQUIRE(result == 0);
 }
+
+TEST_CASE("KLIB - Insert and Find")
+{
+    using Table = klibtable<int, int>;
+    Table table;
+    int ret;
+
+    {
+        Table::iterator it = table.put(42, &ret);
+        REQUIRE(ret == 1);
+        REQUIRE(it != table.end());
+        REQUIRE(it.key() == 42);
+        REQUIRE(table.size() == 1);
+    }
+
+    {
+        Table::iterator it = table.put(42, &ret);
+        REQUIRE(ret == 0);
+        REQUIRE(it != table.end());
+        REQUIRE(it.key() == 42);
+        REQUIRE(table.size() == 1);
+    }
+}

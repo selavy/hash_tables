@@ -86,11 +86,13 @@ public:
 
     constexpr iterator begin() noexcept
     {
+        // TODO: FIX ME: begin will skip the first element if 0 is occupied
         return { this, _next_occupied_slot(0) };
     }
 
     constexpr const_iterator begin() const noexcept
     {
+        // TODO: FIX ME: begin will skip the first element if 0 is occupied
         return { this, _next_occupied_slot(0) };
     }
 
