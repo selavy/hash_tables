@@ -6,9 +6,12 @@ BeforeEach(QOATable) {}
 AfterEach(QOATable) {}
 
 Ensure(QOATable, qoa_create_table) {
-    assert_that(1, is_equal_to(1));
     qoatable* t = qoa_create(i32);
     assert_that(qoa_size(i32, t), is_equal_to(0));
+    int ret = qoa_resize(i32, t, 7);
+    assert_that(ret, is_equal_to(0));
+    assert_that(t->asize, is_greater_than(6));
+    // assert_that(qoa_valid(i32, t, 0), is_false);
     qoa_destroy(i32, t);
 }
 
