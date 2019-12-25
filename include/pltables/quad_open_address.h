@@ -22,9 +22,12 @@
 #define qoareallocarray(ptr, nmemb, size) reallocarray(ptr, nmemb, size)
 #define qoafreearray(ptr, nmemb, size) free(ptr)
 
-typedef uint32_t flag_t;
-typedef int key_t;
-typedef int val_t;
+#define flag_t uint32_t
+#define key_t  int
+#define val_t  int
+// typedef uint32_t flag_t;
+// typedef int key_t;
+// typedef int val_t;
 typedef int qoaiter;
 struct qoatable_s
 {
@@ -59,5 +62,9 @@ void qoatable_destroy(qoatable* table)
         qoafree(table, sizeof(qoatable));
     }
 }
+
+#undef flag_t
+#undef key_t
+#undef val_t
 
 #endif // QUAD_OPEN_ADDRESS__H_
