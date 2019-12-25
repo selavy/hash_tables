@@ -15,3 +15,21 @@ option(BENCHMARK_ENABLE_INSTALL OFF)
 option(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF)
 add_subdirectory(benchmark)
 add_library(Google::Benchmark ALIAS benchmark)
+
+#
+# CGreen
+#
+option(USE_SYSTEM_CGREEN "Use system install version of CGreen" ON)
+if (USE_SYSTEM_CGREEN)
+	find_package(cgreen REQUIRED)
+else ()
+	add_subdirectory(cgreen)
+	set(CGREEN_LIBRARIES cgreen)
+    set(CGREEN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/cgreen/include)
+endif (USE_SYSTEM_CGREEN)
+message("CGreen INCLUDE_DIRS = ${CGREEN_INCLUDE_DIRS}")
+message("CGreen LIBRARIES    = ${CGREEN_LIBRARIES}")
+
+add_library(CGreen SHARED cgreen_main.c)
+target_include_directories(CGreen PUBLIC ${CGREEN_INCLUDE_DIRS})
+target_link_libraries(CGreen PUBLIC ${CGREEN_LIBRARIES})

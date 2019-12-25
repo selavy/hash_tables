@@ -38,7 +38,7 @@ release: build/release
 
 build/debug:
 	mkdir -p build/debug
-	cd build/debug && CC=$(CC) CXX=$(CXX) cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../..
+	cd build/debug && CC=$(CC) CXX=$(CXX) cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON ../..
 
 build/release:
 	mkdir -p build/release

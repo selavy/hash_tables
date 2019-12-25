@@ -4,3 +4,6 @@
 [submodule "third_party/benchmark"]
 	path = third_party/benchmark
 	url = git@github.com:google/benchmark.git
+[submodule "third_party/cgreen"]
+	path = third_party/cgreen
+	url = git@github.com:cgreen-devs/cgreen.git

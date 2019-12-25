@@ -163,7 +163,7 @@ TEST_CASE("LOA - Insert and erase keys")
     }
 }
 
-TEST_CASE("iteration covers all elements")
+TEST_CASE("LOA - iteration covers all elements")
 {
     constexpr size_t N = 42;
     using Table = loatable<int, int>;

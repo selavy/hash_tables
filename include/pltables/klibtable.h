@@ -71,6 +71,8 @@ public:
         }
     }
 
+    // NOTE(peter): probe sequence will have maximum of (2*asize - 1) iterations
+    // before it wraps around
     khiter_t get(key_type key) noexcept
     {
         if (h->n_buckets) {
