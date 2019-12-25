@@ -7,9 +7,9 @@ AfterEach(QOATable) {}
 
 Ensure(QOATable, qoa_create_table) {
     assert_that(1, is_equal_to(1));
-    // assert_that(1, is_equal_to(2));
-    // qoatable* t = qoatable_create();
-    // qoatable_destroy(t);
+    qoatable* t = qoa_create(i32);
+    assert_that(qoa_size(i32, t), is_equal_to(0));
+    qoa_destroy(i32, t);
 }
 
 TestSuite *qoatable_tests() {
