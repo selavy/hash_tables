@@ -105,8 +105,6 @@ struct qoaresult_s
 };
 typedef struct qoaresult_s qoaresult;
 
-#define qoatable_t(name) qoatable__##name##_t
-
 #define QOA__TYPES(name, key_t, val_t)                                         \
     struct qoatable__##name##_s                                                \
     {                                                                          \
@@ -382,6 +380,7 @@ typedef struct qoaresult_s qoaresult;
     QOA__IMPLS(name, scope, qoatable_t(name), key_t, val_t, hashfn, keyeq)
 
 /* --- Public API --- */
+#define qoatable_t(name) qoatable__##name##_t
 #define qoa_create(name) qoa_create_##name()
 #define qoa_init(name, t) qoa_init_##name(t)
 #define qoa_destroy(name, t) qoa_destroy_##name(t)
