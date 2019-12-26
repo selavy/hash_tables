@@ -1,7 +1,7 @@
 #include <cgreen/cgreen.h>
 #include <pltables/quad_open_address.h>
 
-QOA_INIT2(i32, static inline, int, int, qoa_int_hash_func, qoa_int_equal)
+QOA_INT_INIT(i32, int, qoa_i32_hash_identity)
 typedef qoatable_t(i32) qoatable;
 
 Describe(QOATable);

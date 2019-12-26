@@ -1,6 +1,11 @@
 #ifndef QUAD_OPEN_ADDRESS__H_
 #define QUAD_OPEN_ADDRESS__H_
 
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 /*
  * Quadratic Probing Open Addressing Hash Table
  *
@@ -18,31 +23,106 @@
  * erase(T*, K)
  */
 
-#include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+/* --- Public API --- */
+#define qoatable_t(name) qoatable__##name##_t
+#define qoa_create(name) qoa_create_##name()
+#define qoa_init(name, t) qoa_init_##name(t)
+#define qoa_destroy(name, t) qoa_destroy_##name(t)
+#define qoa_size(name, t) qoa_size_##name(t)
+#define qoa_valid(name, t, iter) qoa_valid_##name(t, iter)
+#define qoa_exist(name, t, iter) qoa_exist_##name(t, iter)
+#define qoa_resize(name, t, asize) qoa_resize_##name(t, asize)
+#define qoa_resize_fast(name, t, asize) qoa_resize_fast_##name(t, asize)
+#define qoa_insert(name, t, key) qoa_insert_##name(t, key)
+#define qoa_put(name, t, key, ret) qoa_put_##name(t, key, ret)
+#define qoa_key(name, t, iter) qoa_key_##name(t, iter)
+#define qoa_val(name, t, iter) qoa_val_##name(t, iter)
+#define qoa_get(name, t, key) qoa_get_##name(t, key)
+#define qoa_find(name, t, key) qoa_find_##name(t, key)
+#define qoa_end(name, t) qoa_end_##name(t)
+#define qoa_del(name, t, iter) qoa_del_##name(t, iter)
+#define qoa_erase(name, t, key) qoa_erase_##name(t, key)
+#define qoa_isempty(name, t) qoa_isempty_##name(t)
 
-#ifndef reallocarray
-#define reallocarray(ptr, nmemb, size) realloc(ptr, (nmemb) * (size))
-#define QOA_DEFINED_REALLOCARRAY
-#endif
+/* --- Type Creation API --- */
+#define QOA_DECLARE(name, key_t, val_t)                                        \
+    QOA__TYPES(name, key_t, val_t)                                             \
+    QOA__PROTOS(name, qoatable_t(name), key_t, val_t)
 
-/* USER DEFINED -- TODO: put somewhere else and move other hash functions over
- */
-int qoa_int_hash_func(int k)
+#define QOA_INIT2(name, scope, key_t, val_t, hashfn, keyeq)                    \
+    QOA__TYPES(name, key_t, val_t)                                             \
+    QOA__IMPLS(name, scope, qoatable_t(name), key_t, val_t, hashfn, keyeq)
+
+#define QOA_INIT(name, key_t, val_t, hashfn, keyeq)                            \
+    QOA_INIT2(name, static inline, key_t, val_t, hashfn, keyeq)
+
+/* define a table of int -> val_t */
+#define QOA_INT_INIT(name, val_t, hashfn)                                      \
+    QOA_INIT(name, int, val_t, hashfn, qoa_i32_eq)
+
+/* define a table of str -> val_t */
+#define QOA_STR_INIT(name, val_t, hashfn)                                      \
+    QOA_INIT(name, const char *, val_t, hashfn, qoa_str_eq)
+
+/* --- Common Hash Functions --- */
+
+static inline int qoa_i32_hash_identity(int key)
 {
-    return (int)k;
+    return key;
 }
-int qoa_int_equal(int a, int b)
+
+static inline int qoa_str_hash_X31(const char *s)
 {
-    // return a - b;
+    int h = (int)*s;
+    if (h)
+        for (++s; *s; ++s)
+            h = (h << 5) - h + (int)*s;
+    return h;
+}
+
+static inline int qoa_i32_hash_Wang(int key)
+{
+    key += ~(key << 15);
+    key ^= (key >> 10);
+    key += (key << 3);
+    key ^= (key >> 6);
+    key += ~(key << 11);
+    key ^= (key >> 16);
+    return key;
+}
+
+/* --- Common Equality Functions --- */
+
+static inline int qoa_i32_eq(int a, int b)
+{
     return a == b;
 }
-int qoa_str_equal(const char *a, const char *b)
+
+static inline int qoa_str_eq(const char *a, const char *b)
 {
     return strcmp(a, b) == 0;
 }
+
+/* --- Implementation -- */
+
+#ifndef reallocarray
+// #ifndef SIZE_MAX
+// #define SIZE_MAX UINTPTR_MAX
+// #endif
+// #define MUL_NO_OVERFLOW ((size_t)1 << (sizeof(size_t) * 4))
+// void *reallocarray(void *optr, size_t nmemb, size_t size)
+// {
+//     if ((nmemb >= MUL_NO_OVERFLOW || size >= MUL_NO_OVERFLOW) && nmemb > 0 &&
+//         SIZE_MAX / nmemb < size) {
+//         errno = ENOMEM;
+//         return NULL;
+//     }
+//     if (size == 0 || nmemb == 0)
+//         return NULL;
+//     return realloc(optr, size * nmemb);
+// }
+#define reallocarray(ptr, nmemb, size) realloc(ptr, (nmemb) * (size))
+#endif
 
 #define qoa_calloc(nmemb, size) calloc(nmemb, size)
 #define qoa_free(ptr, size) free(ptr)
@@ -369,35 +449,5 @@ typedef struct qoaresult_s qoaresult;
     }                                                                          \
                                                                                \
     scope int qoa_isempty_##name(const table_t *t) { return t->size != 0; }
-
-/* --- Type Creation API --- */
-#define QOA_DECLARE(name, key_t, val_t)                                        \
-    QOA__TYPES(name, key_t, val_t)                                             \
-    QOA__PROTOS(name, qoatable_t(i32), key_t, val_t)
-
-#define QOA_INIT2(name, scope, key_t, val_t, hashfn, keyeq)                    \
-    QOA__TYPES(name, key_t, val_t)                                             \
-    QOA__IMPLS(name, scope, qoatable_t(name), key_t, val_t, hashfn, keyeq)
-
-/* --- Public API --- */
-#define qoatable_t(name) qoatable__##name##_t
-#define qoa_create(name) qoa_create_##name()
-#define qoa_init(name, t) qoa_init_##name(t)
-#define qoa_destroy(name, t) qoa_destroy_##name(t)
-#define qoa_size(name, t) qoa_size_##name(t)
-#define qoa_valid(name, t, iter) qoa_valid_##name(t, iter)
-#define qoa_exist(name, t, iter) qoa_exist_##name(t, iter)
-#define qoa_resize(name, t, asize) qoa_resize_##name(t, asize)
-#define qoa_resize_fast(name, t, asize) qoa_resize_fast_##name(t, asize)
-#define qoa_insert(name, t, key) qoa_insert_##name(t, key)
-#define qoa_put(name, t, key, ret) qoa_put_##name(t, key, ret)
-#define qoa_key(name, t, iter) qoa_key_##name(t, iter)
-#define qoa_val(name, t, iter) qoa_val_##name(t, iter)
-#define qoa_get(name, t, key) qoa_get_##name(t, key)
-#define qoa_find(name, t, key) qoa_find_##name(t, key)
-#define qoa_end(name, t) qoa_end_##name(t)
-#define qoa_del(name, t, iter) qoa_del_##name(t, iter)
-#define qoa_erase(name, t, key) qoa_erase_##name(t, key)
-#define qoa_isempty(name, t) qoa_isempty_##name(t)
 
 #endif // QUAD_OPEN_ADDRESS__H_
