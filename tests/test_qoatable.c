@@ -134,6 +134,19 @@ Ensure(QOATable, qoa_lookups) {
         assert_that(iter, is_equal_to(qoa_end(i32, t)));
     }
 
+    // erase odd keys
+    for (int i = 1; i < N; i += 2) {
+        int j = qoa_erase(i32, t, i);
+        assert_that(j, is_equal_to(1));
+    }
+    assert_that(qoa_size(i32, t), is_equal_to(N/2));
+
+    // erase odd keys - missing
+    for (int i = 1; i < N; i += 2) {
+        int j = qoa_erase(i32, t, i);
+        assert_that(j, is_equal_to(0));
+    }
+
     qoa_destroy(i32, t);
 }
 
