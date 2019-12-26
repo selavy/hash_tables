@@ -203,7 +203,7 @@ Ensure(QOATable, can_insert_strings_and_lookup)
         ret = snprintf(&buf[0], sizeof(buf), "This is a string: %d", i);
         assert_that(ret, is_greater_than(0));
         /* TODO: fix -- leaks memory */
-        ret = qoa_erase(str, t, buf);
+        ret = qoa_erase2(str, t, buf, free_string_keys);
         assert_that(ret, is_equal_to(1));
     }
 

@@ -45,6 +45,7 @@
 #define qoa_end(name, t) qoa_end_##name(t)
 #define qoa_del(name, t, iter) qoa_del_##name(t, iter)
 #define qoa_erase(name, t, key) qoa_erase_##name(t, key)
+#define qoa_erase2(name, t, key, dtor) qoa_erase2_##name(t, key, dtor)
 #define qoa_isempty(name, t) qoa_isempty_##name(t)
 
 /* --- Type Creation API --- */
@@ -193,6 +194,7 @@ typedef struct qoaresult_s qoaresult;
 #define QOA__TYPES(name, key_t, val_t)                                         \
     typedef key_t qoakey_t(name);                                              \
     typedef val_t qoaval_t(name);                                              \
+    typedef void (*qoadtor_t)(qoakey_t(name) *, qoaval_t(name) *);             \
     struct qoatable__##name##_s                                                \
     {                                                                          \
         uint32_t *flags;                                                       \
@@ -209,7 +211,7 @@ typedef struct qoaresult_s qoaresult;
     extern table_t *qoa_create_##name();                                       \
     extern void qoa_init_##name(table_t *t);                                   \
     extern void qoa_destroy_##name(table_t *t);                                \
-    extern void qoa_destroy2_##name(table_t *t);                               \
+    extern void qoa_destroy2_##name(table_t *t, qoadtor_t dtor);               \
     extern int qoa_size_##name(const table_t *t);                              \
     extern int qoa_valid_##name(const table_t *t, qoaiter iter);               \
     extern int qoa_exist_##name(const table_t *t, qoaiter iter);               \
@@ -224,6 +226,7 @@ typedef struct qoaresult_s qoaresult;
     extern qoaiter qoa_end_##name(const table_t *t);                           \
     extern void qoa_del_##name(table_t *t, qoaiter iter);                      \
     extern int qoa_erase_##name(table_t *t, key_t key);                        \
+    extern int qoa_erase2_##name(table_t *t, key_t key, qoadtor_t dtor);       \
     extern int qoa_isempty_##name(const table_t *t);
 
 #define QOA__IMPLS(name, scope, table_t, key_t, val_t, qoa__hash, qoa__eq)     \
@@ -466,6 +469,16 @@ typedef struct qoaresult_s qoaresult;
         if (iter == qoa_end_##name(t))                                         \
             return 0;                                                          \
         qoa_del_##name(t, iter);                                               \
+        return 1;                                                              \
+    }                                                                          \
+                                                                               \
+    scope int qoa_erase2_##name(table_t *t, key_t key, qoadtor_t dtor)         \
+    {                                                                          \
+        qoaiter iter = qoa_find_##name(t, key);                                \
+        if (iter == qoa_end_##name(t))                                         \
+            return 0;                                                          \
+        qoa_del_##name(t, iter);                                               \
+        dtor(&t->keys[iter], &t->vals[iter]);                                  \
         return 1;                                                              \
     }                                                                          \
                                                                                \
