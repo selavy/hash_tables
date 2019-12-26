@@ -4,6 +4,8 @@
 /*
  * Quadratic Probing Open Addressing Hash Table
  *
+ * Heavily borrowed from khash. TODO: add MIT license
+ *
  * create()
  * destroy(T*)
  * size(T*)
