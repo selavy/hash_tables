@@ -135,8 +135,9 @@ int qoa_size_i32(const qoatable* t)
 
 int qoa_valid_i32(const qoatable *t, qoaiter iter)
 {
-    assert(0 <= iter && iter < t->asize);
-    return qoa__islive(t->flags, iter);
+    assert(t != NULL);
+    assert(0 <= iter && iter <= t->asize);
+    return iter != t->asize && qoa__islive(t->flags, iter);
 }
 
 int qoa_exist_i32(const qoatable *t, qoaiter iter)
@@ -315,6 +316,30 @@ qoaiter qoa_end_i32(const qoatable *t)
     return t->asize;
 }
 
+void qoa_del_i32(qoatable *t, qoaiter iter)
+{
+    assert(t != NULL);
+    if (iter != t->asize && qoa__islive(t->flags, iter)) {
+        assert(t->size > 0);
+        qoa__set_isdel_true(t->flags, iter);
+        --t->size;
+    }
+}
+
+int qoa_erase_i32(qoatable *t, key_t key)
+{
+    qoaiter iter = qoa_find_i32(t, key);
+    if (iter == qoa_end_i32(t))
+        return 0;
+    qoa_del_i32(t, iter);
+    return 1;
+}
+
+int qoa_isempty_i32(const qoatable *t)
+{
+    return t->size != 0;
+}
+
 /* Public Interface */
 #define qoa_create(name)           qoa_create_##name()
 #define qoa_init(name, t)          qoa_init_##name(t)
@@ -331,6 +356,9 @@ qoaiter qoa_end_i32(const qoatable *t)
 #define qoa_get(name, t, key)      qoa_get_##name(t, key)
 #define qoa_find(name, t, key)     qoa_find_##name(t, key)
 #define qoa_end(name, t)           qoa_end_##name(t)
+#define qoa_del(name, t, iter)     qoa_del_##name(t, iter)
+#define qoa_erase(name, t, key)    qoa_erase_##name(t, key)
+#define qoa_isempty(name, t)       qoa_isempty_##name(t)
 
 #undef flag_t
 #undef key_t
