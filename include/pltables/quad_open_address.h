@@ -30,18 +30,15 @@
 
 /* USER DEFINED -- TODO: put somewhere else and move other hash functions over
  */
-int
-qoa_int_hash_func(int k)
+int qoa_int_hash_func(int k)
 {
     return (int)k;
 }
-int
-qoa_int_equal(int a, int b)
+int qoa_int_equal(int a, int b)
 {
     return a - b;
 }
-int
-qoa_str_equal(const char* a, const char* b)
+int qoa_str_equal(const char *a, const char *b)
 {
     return strcmp(a, b);
 }
@@ -94,7 +91,6 @@ struct qoaresult_s
 };
 typedef struct qoaresult_s qoaresult;
 
-
 /* TODO: remove */
 #define flag_t uint32_t
 #define key_t int
@@ -105,9 +101,9 @@ typedef struct qoaresult_s qoaresult;
 #define QOA__TYPE(name, key_t, val_t)                                          \
     struct qoatable__##name##_s                                                \
     {                                                                          \
-        flag_t* flags;                                                         \
-        key_t* keys;                                                           \
-        val_t* vals;                                                           \
+        flag_t *flags;                                                         \
+        key_t *keys;                                                           \
+        val_t *vals;                                                           \
         uint32_t size;                                                         \
         uint32_t asize;                                                        \
         uint32_t used;                                                         \
@@ -115,8 +111,29 @@ typedef struct qoaresult_s qoaresult;
     };                                                                         \
     typedef struct qoatable__##name##_s qoatable_t(name)
 
+#define QOA__PROTOS(name, table_t, key_t, val_t)                               \
+    extern table_t *qoa_create_##name();                                       \
+    extern void qoa_init_##name(table_t *t);                                   \
+    extern void qoa_destroy_##name(table_t *t);                                \
+    extern int qoa_size_##name(const table_t *t);                              \
+    extern int qoa_valid_##name(const table_t *t, qoaiter iter);               \
+    extern int qoa_exist_##name(const table_t *t, qoaiter iter);               \
+    extern int qoa_resize_fast_##name(table_t *t, int newasize);               \
+    extern int qoa_resize_##name(table_t *t, int newasize);                    \
+    extern qoaresult qoa_insert_##name(table_t *t, key_t key);                 \
+    extern qoaiter qoa_put_##name(table_t *t, key_t key, int *res);            \
+    extern const key_t *qoa_key_##name(const table_t *t, qoaiter iter);        \
+    extern val_t *qoa_val_##name(const table_t *t, qoaiter iter);              \
+    extern qoaiter qoa_get_##name(const table_t *t, key_t key);                \
+    extern qoaiter qoa_find_##name(const table_t *t, key_t key);               \
+    extern qoaiter qoa_end_##name(const table_t *t);                           \
+    extern void qoa_del_##name(table_t *t, qoaiter iter);                      \
+    extern int qoa_erase_##name(table_t *t, key_t key);                        \
+    extern int qoa_isempty_##name(const table_t *t);
+
 /* TODO: temp temp temp remove */
 QOA__TYPE(i32, int, int);
+QOA__PROTOS(i32, qoatable_t(i32), int, int)
 typedef qoatable_t(i32) qoatable;
 
 /* TODO: remove */
@@ -125,8 +142,7 @@ typedef qoatable_t(i32) qoatable;
 #define qoa__eq(a, b) (qoa_int_equal(a, b) == 0)
 #define qoa__neq(a, b) (qoa_int_equal(a, b) != 0)
 
-static inline uint32_t
-qoa__rounduppow2(uint32_t x)
+static inline uint32_t qoa__rounduppow2(uint32_t x)
 {
     assert(x != 0);
     --x;
@@ -139,14 +155,12 @@ qoa__rounduppow2(uint32_t x)
     return x;
 }
 
-qoatable*
-qoa_create_i32()
+qoatable *qoa_create_i32()
 {
-    return (qoatable*)qoa_calloc(1, sizeof(qoatable));
+    return (qoatable *)qoa_calloc(1, sizeof(qoatable));
 }
 
-void
-qoa_init_i32(qoatable* t)
+void qoa_init_i32(qoatable *t)
 {
     t->flags = NULL;
     t->keys = NULL;
@@ -154,8 +168,7 @@ qoa_init_i32(qoatable* t)
     t->size = t->asize = t->used = t->upbnd = 0;
 }
 
-void
-qoa_destroy_i32(qoatable* t)
+void qoa_destroy_i32(qoatable *t)
 {
     if (t) {
         qoa_freearray(t->flags, qoa__fsize(t->size), sizeof(flag_t));
@@ -171,28 +184,24 @@ qoa_destroy_i32(qoatable* t)
     }
 }
 
-int
-qoa_size_i32(const qoatable* t)
+int qoa_size_i32(const qoatable *t)
 {
     return t->size;
 }
 
-int
-qoa_valid_i32(const qoatable* t, qoaiter iter)
+int qoa_valid_i32(const qoatable *t, qoaiter iter)
 {
     assert(t != NULL);
     assert(0 <= iter && iter <= t->asize);
     return iter != t->asize && qoa__islive(t->flags, iter);
 }
 
-int
-qoa_exist_i32(const qoatable* t, qoaiter iter)
+int qoa_exist_i32(const qoatable *t, qoaiter iter)
 {
     return qoa_valid_i32(t, iter);
 }
 
-int
-qoa_resize_fast_i32(qoatable* t, int newasize)
+int qoa_resize_fast_i32(qoatable *t, int newasize)
 {
     flag_t *flags, *oldflags = t->flags;
     key_t key, *keys;
@@ -201,9 +210,9 @@ qoa_resize_fast_i32(qoatable* t, int newasize)
     assert(newasize >= QOA_MIN_TABLE_SIZE);
     assert((newasize & (newasize - 1)) == 0);
     assert(t->size <= qoa_max_load_factor(newasize));
-    flags = (flag_t*)qoa_calloc(qoa__fsize(newasize), sizeof(flag_t));
-    keys = (key_t*)qoa_reallocarray(t->keys, newasize, sizeof(key_t));
-    vals = (val_t*)qoa_reallocarray(t->vals, newasize, sizeof(val_t));
+    flags = (flag_t *)qoa_calloc(qoa__fsize(newasize), sizeof(flag_t));
+    keys = (key_t *)qoa_reallocarray(t->keys, newasize, sizeof(key_t));
+    vals = (val_t *)qoa_reallocarray(t->vals, newasize, sizeof(val_t));
     if (!flags || !keys || !vals) {
         free(flags);
         free(keys);
@@ -245,8 +254,7 @@ qoa_resize_fast_i32(qoatable* t, int newasize)
     return 0;
 }
 
-int
-qoa_resize_i32(qoatable* t, int newasize)
+int qoa_resize_i32(qoatable *t, int newasize)
 {
     newasize = newasize >= QOA_MIN_TABLE_SIZE ? newasize : QOA_MIN_TABLE_SIZE;
     newasize = newasize >= t->upbnd ? newasize : t->upbnd;
@@ -254,12 +262,11 @@ qoa_resize_i32(qoatable* t, int newasize)
     return qoa_resize_fast_i32(t, newasize);
 }
 
-qoaresult
-qoa_insert_i32(qoatable* t, key_t key)
+qoaresult qoa_insert_i32(qoatable *t, key_t key)
 {
     qoaresult res;
-    flag_t* flags;
-    key_t* keys;
+    flag_t *flags;
+    key_t *keys;
     int x, k, i, site, last, step, mask, asize = t->asize;
     if (t->used >= t->upbnd) {
         int newasize = asize > 2 * t->size ? asize : 2 * asize;
@@ -317,33 +324,29 @@ qoa_insert_i32(qoatable* t, key_t key)
     return res;
 }
 
-qoaiter
-qoa_put_i32(qoatable* t, key_t key, int* res)
+qoaiter qoa_put_i32(qoatable *t, key_t key, int *res)
 {
     qoaresult r = qoa_insert_i32(t, key);
     *res = r.result;
     return r.iter;
 }
 
-const key_t*
-qoa_key_i32(const qoatable* t, qoaiter iter)
+const key_t *qoa_key_i32(const qoatable *t, qoaiter iter)
 {
     assert(qoa_valid_i32(t, iter));
     return &t->keys[iter];
 }
 
-val_t*
-qoa_val_i32(const qoatable* t, qoaiter iter)
+val_t *qoa_val_i32(const qoatable *t, qoaiter iter)
 {
     assert(qoa_valid_i32(t, iter));
     return &t->vals[iter];
 }
 
-qoaiter
-qoa_get_i32(const qoatable* t, key_t key)
+qoaiter qoa_get_i32(const qoatable *t, key_t key)
 {
-    const flag_t* flags = t->flags;
-    const key_t* keys = t->keys;
+    const flag_t *flags = t->flags;
+    const key_t *keys = t->keys;
     int k, i, last, step, mask = t->asize - 1;
     if (!t->asize)
         return 0; /* t->asize; */
@@ -360,20 +363,17 @@ qoa_get_i32(const qoatable* t, key_t key)
     return qoa__iseither(flags, i) ? t->asize : i;
 }
 
-qoaiter
-qoa_find_i32(const qoatable* t, key_t key)
+qoaiter qoa_find_i32(const qoatable *t, key_t key)
 {
     return qoa_get_i32(t, key);
 }
 
-qoaiter
-qoa_end_i32(const qoatable* t)
+qoaiter qoa_end_i32(const qoatable *t)
 {
     return t->asize;
 }
 
-void
-qoa_del_i32(qoatable* t, qoaiter iter)
+void qoa_del_i32(qoatable *t, qoaiter iter)
 {
     assert(t != NULL);
     if (iter != t->asize && qoa__islive(t->flags, iter)) {
@@ -383,8 +383,7 @@ qoa_del_i32(qoatable* t, qoaiter iter)
     }
 }
 
-int
-qoa_erase_i32(qoatable* t, key_t key)
+int qoa_erase_i32(qoatable *t, key_t key)
 {
     qoaiter iter = qoa_find_i32(t, key);
     if (iter == qoa_end_i32(t))
@@ -393,8 +392,7 @@ qoa_erase_i32(qoatable* t, key_t key)
     return 1;
 }
 
-int
-qoa_isempty_i32(const qoatable* t)
+int qoa_isempty_i32(const qoatable *t)
 {
     return t->size != 0;
 }
