@@ -10,6 +10,7 @@
  * valid(T*, I) = exist(T*, I)
  * resize(T*, int)
  * put(T*, K)
+ * insert(T*, K)
  * get(T*, K)
  */
 
@@ -38,9 +39,9 @@
 typedef int qoaiter;
 struct qoatable_s
 {
-    flag_t *flags;
-    key_t *keys;
-    val_t *vals;
+    flag_t  *flags;
+    key_t   *keys;
+    val_t   *vals;
     uint32_t size;
     uint32_t asize;
     uint32_t used;
@@ -48,13 +49,28 @@ struct qoatable_s
 };
 typedef struct qoatable_s qoatable;
 
-int qoa_int_hash_func(key_t k) { return (int)k; }
+enum
+{
+    QOA_ERROR   = -1,
+    QOA_PRESENT =  0,
+    QOA_NEW     =  1,
+    QOA_DELETED =  2,
+};
 
-/* TODO: should 0 be equal like strcmp? */
-int qoa_int_equal(key_t a, key_t b) { return a == b; }
+struct qoaresult_s
+{
+    qoaiter iter;
+    int     result;
+};
+typedef struct qoaresult_s qoaresult;
+
+int qoa_int_hash_func(key_t k) { return (int)k; }
+int qoa_int_equal(key_t a, key_t b) { return a - b; }
 
 #define qoa__hash_func(k) qoa_int_hash_func(k)
 #define qoa__equal(a, b)  qoa_int_equal(a, b)
+#define qoa__eq(a, b)  (qoa_int_equal(a, b) == 0)
+#define qoa__neq(a, b) (qoa_int_equal(a, b) != 0)
 
 /* 2 bits per entry, 0 = EMPTY, 1 = LIVE, 2 = DEL */
 #define qoa__fsize(x) ((x) / sizeof(flag_t))
@@ -69,7 +85,6 @@ int qoa_int_equal(key_t a, key_t b) { return a == b; }
 #define qoa__set_isdel_true(flag, i) (flag[i>>4]|=1ul<<((i&0xfU)<<1))
 #define qoa__swapkeys(a, b) do { key_t tmp = a; a = b; b = tmp; } while (0)
 #define qoa__swapvals(a, b) do { val_t tmp = a; a = b; b = tmp; } while (0)
-
 
 uint32_t qoa__rounduppow2(uint32_t x)
 {
@@ -131,8 +146,8 @@ int qoa_exist_i32(const qoatable *t, qoaiter it)
 int qoa_resize_fast_i32(qoatable *t, int newasize)
 {
     flag_t *newflags, *oldflags = t->flags;
-    key_t key, *keys, *oldkeys = t->keys;
-    val_t val, *vals, *oldvals = t->vals;
+    key_t key, *keys;
+    val_t val, *vals;
     int j, k, i, step, oldasize = t->asize, mask = newasize - 1;
     assert(newasize >= QOA_MIN_TABLE_SIZE);
     assert((newasize & (newasize - 1)) == 0); /* table size must be a power of 2 */
@@ -158,8 +173,8 @@ int qoa_resize_fast_i32(qoatable *t, int newasize)
             while (!qoa__isempty(oldflags, i)) i = (i + (++step)) & mask;
             qoa__set_isempty_false(newflags, i);
             if (i < oldasize && qoa__islive(oldflags, i)) {
-                qoa__swapkeys(oldkeys[i], key);
-                qoa__swapvals(oldvals[i], val);
+                qoa__swapkeys(keys[i], key);
+                qoa__swapvals(vals[i], val);
                 qoa__set_isdel_true(oldflags, i);
             } else {
                 /* write the element and jump out of the loop */
@@ -170,6 +185,8 @@ int qoa_resize_fast_i32(qoatable *t, int newasize)
         }
     }
     t->flags = newflags;
+    t->keys = keys;
+    t->vals = vals;
     t->asize = newasize;
     t->used = t->size;
     t->upbnd = qoa_max_load_factor(newasize);
@@ -185,6 +202,67 @@ int qoa_resize_i32(qoatable *t, int newasize)
     return qoa_resize_fast_i32(t, newasize);
 }
 
+qoaresult qoa_insert_i32(qoatable *t, key_t key)
+{
+    qoaresult res;
+    flag_t *flags = t->flags;
+    key_t *keys = t->keys;
+    int x, k, i, site, last, step, asize = t->asize, mask = t->asize - 1;
+    if (t->used >= t->upbnd) {
+        int newasize = asize > 2*t->size ? asize : 2*asize;
+        if (qoa_resize_fast_i32(t, newasize) < 0) {
+            res.iter = asize; res.result = QOA_ERROR;
+            // return { asize, QOA_ERROR };
+            return res;
+        }
+    }
+    step = 0;
+    x = site = asize;
+    k = qoa__hash_func(key);
+    i = k & mask;
+    if (qoa__isempty(flags, i)) {
+        x = i;
+    } else {
+        last = i;
+        while (
+            qoa__islive(flags, i) &&
+            (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))
+        ) {
+            if (qoa__isdel(flags, i))
+                site = i;
+            i = (i + (++step)) & mask;
+            if (i == last) {
+                x = site;
+                break;
+            }
+        }
+        if (x == asize) {
+            x = qoa__isempty(flags, i) && site != asize ? site : i;
+        }
+    }
+    if (qoa__isempty(flags, x)) {
+        keys[x] = key;
+        qoa__set_isboth_false(flags, x);
+        ++t->size;
+        ++t->used;
+        // return { x, QOA_NEW };
+        res.iter = x;
+        res.result = QOA_NEW;
+    } else if (qoa__isdel(flags, x)) {
+        t->keys[x] = key;
+        qoa__set_isboth_false(flags, x);
+        ++t->size;
+        // return { x, QOA_DELETED };
+        res.iter = x;
+        res.result = QOA_DELETED;
+    } else {
+        // return { x, QOA_PRESENT };
+        res.iter = x;
+        res.result = QOA_PRESENT;
+    }
+    return res;
+}
+
 /* Public Interface */
 #define qoa_create(name)           qoa_create_##name()
 #define qoa_init(name, t)          qoa_init_##name(t)
@@ -194,6 +272,7 @@ int qoa_resize_i32(qoatable *t, int newasize)
 #define qoa_exist(name, t, iter)   qoa_exist_##name(t, it)
 #define qoa_resize(name, t, asize) qoa_resize_##name(t, asize)
 #define qoa_resize_fast(name, t, asize) qoa_resize_fast_##name(t, asize)
+#define qoa_insert(name, t, key)   qoa_insert_##name(t, key)
 
 #undef flag_t
 #undef key_t
