@@ -7,11 +7,13 @@
  * create()
  * destroy(T*)
  * size(T*)
- * valid(T*, I) = exist(T*, I)
+ * valid(T*, Iter) = exist(T*, Iter)
  * resize(T*, int)
  * put(T*, K)
  * insert(T*, K)
  * get(T*, K)
+ * del(T*, Iter)
+ * erase(T*, K)
  */
 
 #include <stdint.h>
@@ -21,6 +23,7 @@
 
 #ifndef reallocarray
 #define reallocarray(ptr, nmemb, size) realloc(ptr, (nmemb)*(size))
+#define QOA_DEFINED_REALLOCARRAY
 #endif
 
 #define qoa_calloc(nmemb, size) calloc(nmemb, size)
@@ -33,9 +36,6 @@
 #define flag_t uint32_t
 #define key_t  int
 #define val_t  int
-// typedef uint32_t flag_t;
-// typedef int key_t;
-// typedef int val_t;
 typedef int qoaiter;
 struct qoatable_s
 {
@@ -86,7 +86,7 @@ int qoa_int_equal(key_t a, key_t b) { return a - b; }
 #define qoa__swapkeys(a, b) do { key_t tmp = a; a = b; b = tmp; } while (0)
 #define qoa__swapvals(a, b) do { val_t tmp = a; a = b; b = tmp; } while (0)
 
-uint32_t qoa__rounduppow2(uint32_t x)
+static inline uint32_t qoa__rounduppow2(uint32_t x)
 {
     assert(x != 0);
     --x;
@@ -360,8 +360,32 @@ int qoa_isempty_i32(const qoatable *t)
 #define qoa_erase(name, t, key)    qoa_erase_##name(t, key)
 #define qoa_isempty(name, t)       qoa_isempty_##name(t)
 
+#ifdef QOA_DEFINED_REALLOCARRAY
+#undef reallocarray
+#endif
+#undef qoa_calloc
+#undef qoa_free
+#undef qoa_reallocarray
+#undef qoa_freearray
+#undef QOA_MIN_TABLE_SIZE
+#undef qoa_max_load_factor
 #undef flag_t
 #undef key_t
 #undef val_t
+#undef qoa__hash_func
+#undef qoa__equal
+#undef qoa__eq
+#undef qoa__neq
+#undef qoa__fsize
+#undef qoa__isempty
+#undef qoa__isdel
+#undef qoa__iseither
+#undef qoa__islive
+#undef qoa__set_isdel_false
+#undef qoa__set_isempty_false
+#undef qoa__set_isboth_false
+#undef qoa__set_isdel_true
+#undef qoa__swapkeys
+#undef qoa__swapvals
 
 #endif // QUAD_OPEN_ADDRESS__H_
