@@ -10,23 +10,10 @@
  * Quadratic Probing Open Addressing Hash Table
  *
  * Heavily borrowed from khash. TODO: add MIT license
- *
- * create()
- * destroy(T*)
- * size(T*)
- * valid(T*, Iter) = exist(T*, Iter)
- * resize(T*, int)
- * put(T*, K)
- * insert(T*, K)
- * get(T*, K)
- * del(T*, Iter)
- * erase(T*, K)
  */
 
 /* --- Public API --- */
 #define qoatable_t(name) qoatable__##name##_t
-#define qoakey_t(name) qoakey_##name##_t
-#define qoaval_t(name) qoaval_##name##_t
 #define qoa_create(name) qoa_create_##name()
 #define qoa_init(name, t) qoa_init_##name(t)
 #define qoa_destroy(name, t) qoa_destroy_##name(t)
@@ -50,9 +37,14 @@
 
 /* --- Type Creation API --- */
 
+#define qoakey_t(name) qoakey_##name##_t
+#define qoaval_t(name) qoaval_##name##_t
+#define qoadtor_t(name) qoadtor_##name##_t
+
 #define QOA_DECLARE(name, key_t, val_t)                                        \
     QOA__TYPES(name, key_t, val_t)                                             \
-    QOA__PROTOS(name, qoatable_t(name), qoakey_t(name), qoaval_t(name))
+    QOA__PROTOS(name, qoatable_t(name), qoakey_t(name), qoaval_t(name),        \
+                qoadtor_t(name))
 
 #define QOA_INIT2(name, scope, key_t, val_t, hashfn, keyeq)                    \
     QOA__TYPES(name, key_t, val_t)                                             \
@@ -194,7 +186,7 @@ typedef struct qoaresult_s qoaresult;
 #define QOA__TYPES(name, key_t, val_t)                                         \
     typedef key_t qoakey_t(name);                                              \
     typedef val_t qoaval_t(name);                                              \
-    typedef void (*qoadtor_t)(qoakey_t(name) *, qoaval_t(name) *);             \
+    typedef void (*qoadtor_##name##_t)(key_t *, val_t *);                      \
     struct qoatable__##name##_s                                                \
     {                                                                          \
         uint32_t *flags;                                                       \
@@ -207,11 +199,11 @@ typedef struct qoaresult_s qoaresult;
     };                                                                         \
     typedef struct qoatable__##name##_s qoatable_t(name);
 
-#define QOA__PROTOS(name, table_t, key_t, val_t)                               \
+#define QOA__PROTOS(name, table_t, key_t, val_t, dtor_t)                       \
     extern table_t *qoa_create_##name();                                       \
     extern void qoa_init_##name(table_t *t);                                   \
     extern void qoa_destroy_##name(table_t *t);                                \
-    extern void qoa_destroy2_##name(table_t *t, qoadtor_t dtor);               \
+    extern void qoa_destroy2_##name(table_t *t, dtor_t dtor);                  \
     extern int qoa_size_##name(const table_t *t);                              \
     extern int qoa_valid_##name(const table_t *t, qoaiter iter);               \
     extern int qoa_exist_##name(const table_t *t, qoaiter iter);               \
@@ -226,7 +218,7 @@ typedef struct qoaresult_s qoaresult;
     extern qoaiter qoa_end_##name(const table_t *t);                           \
     extern void qoa_del_##name(table_t *t, qoaiter iter);                      \
     extern int qoa_erase_##name(table_t *t, key_t key);                        \
-    extern int qoa_erase2_##name(table_t *t, key_t key, qoadtor_t dtor);       \
+    extern int qoa_erase2_##name(table_t *t, key_t key, dtor_t dtor);          \
     extern int qoa_isempty_##name(const table_t *t);
 
 #define QOA__IMPLS(name, scope, table_t, key_t, val_t, qoa__hash, qoa__eq)     \
@@ -255,7 +247,7 @@ typedef struct qoaresult_s qoaresult;
         }                                                                      \
     }                                                                          \
                                                                                \
-    scope void qoa_destroy2_##name(table_t *t, void (*dtor)(key_t *, val_t *)) \
+    scope void qoa_destroy2_##name(table_t *t, qoadtor_t(name) dtor)           \
     {                                                                          \
         if (t) {                                                               \
             qoaiter i = 0;                                                     \
@@ -472,7 +464,7 @@ typedef struct qoaresult_s qoaresult;
         return 1;                                                              \
     }                                                                          \
                                                                                \
-    scope int qoa_erase2_##name(table_t *t, key_t key, qoadtor_t dtor)         \
+    scope int qoa_erase2_##name(table_t *t, key_t key, qoadtor_t(name) dtor)   \
     {                                                                          \
         qoaiter iter = qoa_find_##name(t, key);                                \
         if (iter == qoa_end_##name(t))                                         \
