@@ -1,22 +1,30 @@
 #include <cgreen/cgreen.h>
 #include <pltables/quad_open_address.h>
 
-QOA_INT_INIT(i32, int, qoa_i32_hash_identity)
+QOA_INT_INIT(i32, int, qoa_i32_hash_identity);
 typedef qoatable_t(i32) qoatable;
 
-Describe(QOATable);
-BeforeEach(QOATable) {}
-AfterEach(QOATable) {}
+QOA_STR_INIT(str, int, qoa_str_hash_X31);
+// typedef qoatable_t(str) strtable;
 
-Ensure(QOATable, can_create_table_and_insert_values) {
-    qoatable_t(i32)* t = qoa_create(i32);
+Describe(QOATable);
+BeforeEach(QOATable)
+{
+}
+AfterEach(QOATable)
+{
+}
+
+Ensure(QOATable, can_create_table_and_insert_values)
+{
+    qoatable_t(i32) *t = qoa_create(i32);
     assert_that(qoa_size(i32, t), is_equal_to(0));
 
     {
         qoaresult res = qoa_insert(i32, t, 42);
         assert_that(res.result, is_equal_to(QOA_NEW));
         assert_that(qoa_size(i32, t), is_equal_to(1));
-        assert_that(qoa_valid(i32, t, res.iter),     is_true);
+        assert_that(qoa_valid(i32, t, res.iter), is_true);
         assert_that(qoa_valid(i32, t, res.iter + 1), is_false);
         assert_that(*qoa_key(i32, t, res.iter), is_equal_to(42));
     }
@@ -52,9 +60,10 @@ Ensure(QOATable, can_create_table_and_insert_values) {
     qoa_destroy(i32, t);
 }
 
-Ensure(QOATable, can_lookup_inserted_values) {
+Ensure(QOATable, can_lookup_inserted_values)
+{
     int N = 128;
-    qoatable_t(i32)* t = qoa_create(i32);
+    qoatable_t(i32) *t = qoa_create(i32);
     qoaresult res;
     qoaiter iter;
 
@@ -75,7 +84,7 @@ Ensure(QOATable, can_lookup_inserted_values) {
     }
 
     // lookup keys - missing
-    for (int i = N; i < 2*N; ++i) {
+    for (int i = N; i < 2 * N; ++i) {
         iter = qoa_find(i32, t, i);
         assert_that(iter, is_equal_to(qoa_end(i32, t)));
     }
@@ -90,7 +99,7 @@ Ensure(QOATable, can_lookup_inserted_values) {
         iter = qoa_find(i32, t, i);
         assert_that(iter, is_equal_to(qoa_end(i32, t)));
     }
-    assert_that(qoa_size(i32, t), is_equal_to(N/2));
+    assert_that(qoa_size(i32, t), is_equal_to(N / 2));
 
     // lookup keys - even keys now missing
     for (int i = 0; i < N; ++i) {
@@ -125,7 +134,7 @@ Ensure(QOATable, can_lookup_inserted_values) {
     }
 
     // lookup keys - missing
-    for (int i = N; i < 2*N; ++i) {
+    for (int i = N; i < 2 * N; ++i) {
         iter = qoa_find(i32, t, i);
         assert_that(iter, is_equal_to(qoa_end(i32, t)));
     }
@@ -135,7 +144,7 @@ Ensure(QOATable, can_lookup_inserted_values) {
         int j = qoa_erase(i32, t, i);
         assert_that(j, is_equal_to(1));
     }
-    assert_that(qoa_size(i32, t), is_equal_to(N/2));
+    assert_that(qoa_size(i32, t), is_equal_to(N / 2));
 
     // erase odd keys - missing
     for (int i = 1; i < N; i += 2) {
@@ -146,7 +155,8 @@ Ensure(QOATable, can_lookup_inserted_values) {
     qoa_destroy(i32, t);
 }
 
-TestSuite *qoatable_tests() {
+TestSuite *qoatable_tests()
+{
     TestSuite *suite = create_test_suite();
     add_test_with_context(suite, QOATable, can_create_table_and_insert_values);
     add_test_with_context(suite, QOATable, can_lookup_inserted_values);

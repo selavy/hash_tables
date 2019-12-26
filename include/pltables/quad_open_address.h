@@ -25,9 +25,12 @@
 
 /* --- Public API --- */
 #define qoatable_t(name) qoatable__##name##_t
+#define qoakey_t(name) qoakey_##name##_t
+#define qoaval_t(name) qoaval_##name##_t
 #define qoa_create(name) qoa_create_##name()
 #define qoa_init(name, t) qoa_init_##name(t)
 #define qoa_destroy(name, t) qoa_destroy_##name(t)
+#define qoa_destroy2(name, t, dtor) qoa_destroy2_##name(t, dtor)
 #define qoa_size(name, t) qoa_size_##name(t)
 #define qoa_valid(name, t, iter) qoa_valid_##name(t, iter)
 #define qoa_exist(name, t, iter) qoa_exist_##name(t, iter)
@@ -45,6 +48,7 @@
 #define qoa_isempty(name, t) qoa_isempty_##name(t)
 
 /* --- Type Creation API --- */
+
 #define QOA_DECLARE(name, key_t, val_t)                                        \
     QOA__TYPES(name, key_t, val_t)                                             \
     QOA__PROTOS(name, qoatable_t(name), key_t, val_t)
@@ -60,9 +64,10 @@
 #define QOA_INT_INIT(name, val_t, hashfn)                                      \
     QOA_INIT(name, int, val_t, hashfn, qoa_i32_eq)
 
+typedef char *qoastr_t;
 /* define a table of str -> val_t */
 #define QOA_STR_INIT(name, val_t, hashfn)                                      \
-    QOA_INIT(name, const char *, val_t, hashfn, qoa_str_eq)
+    QOA_INIT(name, qoastr_t, val_t, hashfn, qoa_str_eq)
 
 /* --- Common Hash Functions --- */
 
@@ -186,6 +191,8 @@ struct qoaresult_s
 typedef struct qoaresult_s qoaresult;
 
 #define QOA__TYPES(name, key_t, val_t)                                         \
+    typedef key_t qoakey_t(name);                                              \
+    typedef val_t qoaval_t(name);                                              \
     struct qoatable__##name##_s                                                \
     {                                                                          \
         uint32_t *flags;                                                       \
@@ -202,6 +209,7 @@ typedef struct qoaresult_s qoaresult;
     extern table_t *qoa_create_##name();                                       \
     extern void qoa_init_##name(table_t *t);                                   \
     extern void qoa_destroy_##name(table_t *t);                                \
+    extern void qoa_destroy2_##name(table_t *t);                               \
     extern int qoa_size_##name(const table_t *t);                              \
     extern int qoa_valid_##name(const table_t *t, qoaiter iter);               \
     extern int qoa_exist_##name(const table_t *t, qoaiter iter);               \
@@ -241,6 +249,19 @@ typedef struct qoaresult_s qoaresult;
             qoa_freearray(t->vals, t->size, sizeof(val_t));                    \
             QOA_DEBUG(qoa_init_##name(t));                                     \
             qoa_free(t, sizeof(table_t));                                      \
+        }                                                                      \
+    }                                                                          \
+                                                                               \
+    scope void qoa_destroy2_##name(table_t *t, void (*dtor)(key_t *, val_t *)) \
+    {                                                                          \
+        if (t) {                                                               \
+            qoaiter i = 0;                                                     \
+            for (i = 0; i < t->asize; ++i) {                                   \
+                if (!qoa__islive(t->flags, i))                                 \
+                    continue;                                                  \
+                dtor(&t->keys[i], &t->vals[i]);                                \
+            }                                                                  \
+            qoa_destroy_##name(t);                                             \
         }                                                                      \
     }                                                                          \
                                                                                \
@@ -448,6 +469,10 @@ typedef struct qoaresult_s qoaresult;
         return 1;                                                              \
     }                                                                          \
                                                                                \
-    scope int qoa_isempty_##name(const table_t *t) { return t->size != 0; }
+    scope int qoa_isempty_##name(const table_t *t) { return t->size != 0; }    \
+                                                                               \
+    struct qoa__empty_dummy_struct_##name                                      \
+    {                                                                          \
+    }
 
 #endif // QUAD_OPEN_ADDRESS__H_
