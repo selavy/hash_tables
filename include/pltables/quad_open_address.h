@@ -207,17 +207,22 @@ int qoa_resize_i32(qoatable *t, int newasize)
 qoaresult qoa_insert_i32(qoatable *t, key_t key)
 {
     qoaresult res;
-    flag_t *flags = t->flags;
-    key_t *keys = t->keys;
-    int x, k, i, site, last, step, asize = t->asize, mask = t->asize - 1;
+    flag_t *flags;
+    key_t *keys;
+    int x, k, i, site, last, step, mask, asize = t->asize;
     if (t->used >= t->upbnd) {
         int newasize = asize > 2*t->size ? asize : 2*asize;
+        newasize = newasize >= QOA_MIN_TABLE_SIZE ? newasize : QOA_MIN_TABLE_SIZE;
         if (qoa_resize_fast_i32(t, newasize) < 0) {
-            res.iter = asize; res.result = QOA_ERROR;
-            // return { asize, QOA_ERROR };
+            res.iter = asize;
+            res.result = QOA_ERROR;
             return res;
         }
+        asize = t->asize;
     }
+    mask = asize - 1;
+    flags = t->flags;
+    keys = t->keys;
     step = 0;
     x = site = asize;
     k = qoa__hash_func(key);
@@ -247,18 +252,15 @@ qoaresult qoa_insert_i32(qoatable *t, key_t key)
         qoa__set_isboth_false(flags, x);
         ++t->size;
         ++t->used;
-        // return { x, QOA_NEW };
         res.iter = x;
         res.result = QOA_NEW;
     } else if (qoa__isdel(flags, x)) {
         t->keys[x] = key;
         qoa__set_isboth_false(flags, x);
         ++t->size;
-        // return { x, QOA_DELETED };
         res.iter = x;
         res.result = QOA_DELETED;
     } else {
-        // return { x, QOA_PRESENT };
         res.iter = x;
         res.result = QOA_PRESENT;
     }

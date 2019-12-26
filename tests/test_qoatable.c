@@ -8,13 +8,6 @@ AfterEach(QOATable) {}
 Ensure(QOATable, qoa_create_table) {
     qoatable* t = qoa_create(i32);
     assert_that(qoa_size(i32, t), is_equal_to(0));
-    int ret = qoa_resize(i32, t, 7);
-    assert_that(ret, is_equal_to(0));
-    /* TODO: remove these asserts */
-    assert_that(t->asize, is_greater_than(6));
-    assert_that(t->keys, is_not_equal_to(NULL));
-    assert_that(t->vals, is_not_equal_to(NULL));
-    assert_that(t->flags, is_not_equal_to(NULL));
 
     {
         qoaresult res = qoa_insert(i32, t, 42);
