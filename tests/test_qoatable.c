@@ -6,7 +6,7 @@ BeforeEach(QOATable) {}
 AfterEach(QOATable) {}
 
 Ensure(QOATable, qoa_create_table) {
-    qoatable* t = qoa_create(i32);
+    qoatable_t(i32)* t = qoa_create(i32);
     assert_that(qoa_size(i32, t), is_equal_to(0));
 
     {
@@ -51,7 +51,7 @@ Ensure(QOATable, qoa_create_table) {
 
 Ensure(QOATable, qoa_lookups) {
     int N = 1024;
-    qoatable* t = qoa_create(i32);
+    qoatable_t(i32)* t = qoa_create(i32);
     qoaresult res;
     qoaiter iter;
 
