@@ -131,16 +131,15 @@ typedef struct qoaresult_s qoaresult;
     extern int qoa_erase_##name(table_t *t, key_t key);                        \
     extern int qoa_isempty_##name(const table_t *t);
 
+
 /* TODO: temp temp temp remove */
 QOA__TYPE(i32, int, int);
 QOA__PROTOS(i32, qoatable_t(i32), int, int)
 typedef qoatable_t(i32) qoatable;
 
 /* TODO: remove */
-#define qoa__hash_func(k) qoa_int_hash_func(k)
-#define qoa__equal(a, b) qoa_int_equal(a, b)
+#define qoa__hash(k) qoa_int_hash_func(k)
 #define qoa__eq(a, b) (qoa_int_equal(a, b) == 0)
-#define qoa__neq(a, b) (qoa_int_equal(a, b) != 0)
 
 static inline uint32_t qoa__rounduppow2(uint32_t x)
 {
@@ -154,6 +153,8 @@ static inline uint32_t qoa__rounduppow2(uint32_t x)
     ++x;
     return x;
 }
+
+// #define QOA__IMPL(name, table_t, key_t, val_t, qoa__hash, qoa__eq)
 
 qoatable *qoa_create_i32()
 {
@@ -220,6 +221,14 @@ int qoa_resize_fast_i32(qoatable *t, int newasize)
         return -1;
     }
     memset(flags, 0xaa, qoa__fsize(newasize) * sizeof(flag_t));
+
+#ifndef NDEBUG
+    if (t->keys == NULL) {
+        memset(keys, 0, sizeof(key_t)*newasize);
+        memset(vals, 0, sizeof(key_t)*newasize);
+    }
+#endif
+
     for (j = 0; j < oldasize; ++j) {
         if (!qoa__islive(oldflags, j))
             continue;
@@ -227,17 +236,23 @@ int qoa_resize_fast_i32(qoatable *t, int newasize)
         val = vals[j];
         qoa__set_isdel_true(oldflags, j);
         for (;;) {
-            k = qoa__hash_func(key);
+            k = qoa__hash(key);
             i = k & mask;
             step = 0;
-            while (!qoa__isempty(oldflags, i))
+            /* find next empty bucket in new flags */
+            while (!qoa__isempty(flags, i))
                 i = (i + (++step)) & mask;
             qoa__set_isempty_false(flags, i);
+            /* if there was a item in that slot in the old array,
+             * place current item there, and start process again
+             * with new item. */
             if (i < oldasize && qoa__islive(oldflags, i)) {
                 qoa__swapkeys(keys[i], key);
                 qoa__swapvals(vals[i], val);
                 qoa__set_isdel_true(oldflags, i);
-            } else {
+            }
+            /* else place item and we are done */
+            else {
                 keys[i] = key;
                 vals[i] = val;
                 break;
@@ -284,14 +299,14 @@ qoaresult qoa_insert_i32(qoatable *t, key_t key)
     keys = t->keys;
     step = 0;
     x = site = asize;
-    k = qoa__hash_func(key);
+    k = qoa__hash(key);
     i = k & mask;
     if (qoa__isempty(flags, i)) {
         x = i;
     } else {
         last = i;
         while (qoa__islive(flags, i) &&
-               (qoa__isdel(flags, i) || qoa__neq(keys[i], key))) {
+               (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))) {
             if (qoa__isdel(flags, i))
                 site = i;
             i = (i + (++step)) & mask;
@@ -351,11 +366,11 @@ qoaiter qoa_get_i32(const qoatable *t, key_t key)
     if (!t->asize)
         return 0; /* t->asize; */
     step = 0;
-    k = qoa__hash_func(key);
+    k = qoa__hash(key);
     i = k & mask;
     last = i;
     while (qoa__islive(flags, i) &&
-           (qoa__isdel(flags, i) || qoa__neq(keys[i], key))) {
+           (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))) {
         i = (i + (++step)) & mask;
         if (i == last)
             return t->asize;
@@ -397,6 +412,27 @@ int qoa_isempty_i32(const qoatable *t)
     return t->size != 0;
 }
 
+void qoa__dump(const qoatable *t)
+{
+    int asize = t ? t->asize : 0;
+    uint32_t bits;
+    char c;
+    for (int i = 0; i < asize; ++i) {
+        bits = t->flags[i >> 4] & (3ul << ((i & 0xFu) << 1));
+        if (qoa__islive(t->flags, i)) {
+            c = 'L';
+        } else if (qoa__isdel(t->flags, i)) {
+            c = 'T';
+        } else if (qoa__isempty(t->flags, i)) {
+            c = 'E';
+        } else {
+            assert(false);
+        }
+        printf("|[0x%u(%c)]%2d", bits, c, t->keys[i]);
+    }
+    printf("\n");
+}
+
 /* Public Interface */
 #define qoa_create(name) qoa_create_##name()
 #define qoa_init(name, t) qoa_init_##name(t)
@@ -429,10 +465,8 @@ int qoa_isempty_i32(const qoatable *t)
 #undef flag_t
 #undef key_t
 #undef val_t
-#undef qoa__hash_func
-#undef qoa__equal
+#undef qoa__hash
 #undef qoa__eq
-#undef qoa__neq
 #undef qoa__fsize
 #undef qoa__isempty
 #undef qoa__isdel

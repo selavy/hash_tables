@@ -5,7 +5,7 @@ Describe(QOATable);
 BeforeEach(QOATable) {}
 AfterEach(QOATable) {}
 
-Ensure(QOATable, qoa_create_table) {
+Ensure(QOATable, can_create_table_and_insert_values) {
     qoatable_t(i32)* t = qoa_create(i32);
     assert_that(qoa_size(i32, t), is_equal_to(0));
 
@@ -49,8 +49,8 @@ Ensure(QOATable, qoa_create_table) {
     qoa_destroy(i32, t);
 }
 
-Ensure(QOATable, qoa_lookups) {
-    int N = 1024;
+Ensure(QOATable, can_lookup_inserted_values) {
+    int N = 128;
     qoatable_t(i32)* t = qoa_create(i32);
     qoaresult res;
     qoaiter iter;
@@ -145,6 +145,7 @@ Ensure(QOATable, qoa_lookups) {
 
 TestSuite *qoatable_tests() {
     TestSuite *suite = create_test_suite();
-    add_test_with_context(suite, QOATable,	qoa_create_table);
+    add_test_with_context(suite, QOATable, can_create_table_and_insert_values);
+    add_test_with_context(suite, QOATable, can_lookup_inserted_values);
     return suite;
 }
