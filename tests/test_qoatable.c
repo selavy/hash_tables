@@ -16,11 +16,69 @@ Ensure(QOATable, qoa_create_table) {
     assert_that(t->vals, is_not_equal_to(NULL));
     assert_that(t->flags, is_not_equal_to(NULL));
 
-    qoaresult res = qoa_insert(i32, t, 42);
-    assert_that(res.result, is_equal_to(QOA_NEW));
-    assert_that(qoa_size(i32, t), is_equal_to(1));
+    {
+        qoaresult res = qoa_insert(i32, t, 42);
+        assert_that(res.result, is_equal_to(QOA_NEW));
+        assert_that(qoa_size(i32, t), is_equal_to(1));
+        assert_that(qoa_valid(i32, t, res.iter),     is_true);
+        assert_that(qoa_valid(i32, t, res.iter + 1), is_false);
+        assert_that(*qoa_key(i32, t, res.iter), is_equal_to(42));
+    }
 
-    // assert_that(qoa_valid(i32, t, 0), is_false);
+    {
+        qoaiter iter;
+        qoaresult res = qoa_insert(i32, t, 42);
+        assert_that(res.result, is_equal_to(QOA_PRESENT));
+        assert_that(qoa_size(i32, t), is_equal_to(1));
+        assert_that(qoa_valid(i32, t, res.iter), is_true);
+        assert_that(*qoa_key(i32, t, res.iter), is_equal_to(42));
+        iter = qoa_get(i32, t, 42);
+        assert_that(iter, is_equal_to(res.iter));
+        assert_that(*qoa_key(i32, t, iter), is_equal_to(42));
+    }
+
+    {
+        int res;
+        qoaiter iter;
+        iter = qoa_put(i32, t, 44, &res);
+        assert_that(res, is_equal_to(QOA_NEW));
+        assert_that(qoa_size(i32, t), is_equal_to(2));
+        assert_that(qoa_valid(i32, t, iter), is_true);
+        assert_that(*qoa_key(i32, t, iter), is_equal_to(44));
+
+        iter = qoa_put(i32, t, 44, &res);
+        assert_that(res, is_equal_to(QOA_PRESENT));
+        assert_that(qoa_size(i32, t), is_equal_to(2));
+        assert_that(qoa_valid(i32, t, iter), is_true);
+        assert_that(*qoa_key(i32, t, iter), is_equal_to(44));
+    }
+
+    qoa_destroy(i32, t);
+}
+
+Ensure(QOATable, qoa_lookups) {
+    int N = 1024;
+    qoatable* t = qoa_create(i32);
+    qoaresult res;
+    qoaiter iter;
+    for (int i = 0; i < N; ++i) {
+        res = qoa_insert(i32, t, i);
+        assert_that(res.result, is_not_equal_to(QOA_ERROR));
+        assert_that(*qoa_key(i32, t, res.iter), is_equal_to(i));
+        *qoa_val(i32, t, res.iter) = i + 1;
+    }
+    // lookup keys - present
+    for (int i = 0; i < N; ++i) {
+        iter = qoa_find(i32, t, i);
+        assert_that(iter, is_not_equal_to(qoa_end(i32, t)));
+        assert_that(*qoa_key(i32, t, iter), is_equal_to(i));
+        assert_that(*qoa_val(i32, t, iter), is_equal_to(i + 1));
+    }
+    // lookup keys - missing
+    for (int i = N; i < 2*N; ++i) {
+        iter = qoa_find(i32, t, i);
+        assert_that(iter, is_equal_to(qoa_end(i32, t)));
+    }
     qoa_destroy(i32, t);
 }
 

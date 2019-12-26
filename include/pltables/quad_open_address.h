@@ -133,14 +133,15 @@ int qoa_size_i32(const qoatable* t)
     return t->size;
 }
 
-int qoa_valid_i32(const qoatable *t, qoaiter it)
+int qoa_valid_i32(const qoatable *t, qoaiter iter)
 {
-    return qoa__islive(t->flags, it);
+    assert(0 <= iter && iter < t->asize);
+    return qoa__islive(t->flags, iter);
 }
 
-int qoa_exist_i32(const qoatable *t, qoaiter it)
+int qoa_exist_i32(const qoatable *t, qoaiter iter)
 {
-    return qoa_valid_i32(t, it);
+    return qoa_valid_i32(t, iter);
 }
 
 int qoa_resize_fast_i32(qoatable *t, int newasize)
@@ -226,7 +227,7 @@ qoaresult qoa_insert_i32(qoatable *t, key_t key)
         last = i;
         while (
             qoa__islive(flags, i) &&
-            (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))
+            (qoa__isdel(flags, i) || qoa__neq(keys[i], key))
         ) {
             if (qoa__isdel(flags, i))
                 site = i;
@@ -263,16 +264,73 @@ qoaresult qoa_insert_i32(qoatable *t, key_t key)
     return res;
 }
 
+qoaiter qoa_put_i32(qoatable *t, key_t key, int* res)
+{
+    qoaresult r = qoa_insert_i32(t, key);
+    *res = r.result;
+    return r.iter;
+}
+
+const key_t* qoa_key_i32(const qoatable *t, qoaiter iter)
+{
+    assert(qoa_valid_i32(t, iter));
+    return &t->keys[iter];
+}
+
+val_t* qoa_val_i32(const qoatable *t, qoaiter iter)
+{
+    assert(qoa_valid_i32(t, iter));
+    return &t->vals[iter];
+}
+
+qoaiter qoa_get_i32(const qoatable *t, key_t key)
+{
+    const flag_t *flags = t->flags;
+    const key_t *keys = t->keys;
+    int k, i, last, step, mask = t->asize - 1;
+    if (!t->asize)
+        return 0; /* t->asize; */
+    step = 0;
+    k = qoa__hash_func(key);
+    i = k & mask;
+    last = i;
+    while (
+        qoa__islive(flags, i) &&
+        (qoa__isdel(flags, i) || qoa__neq(keys[i], key))
+    ) {
+        i = (i + (++step)) & mask;
+        if (i == last)
+            return t->asize;
+    }
+    return qoa__iseither(flags, i) ? t->asize : i;
+}
+
+qoaiter qoa_find_i32(const qoatable *t, key_t key)
+{
+    return qoa_get_i32(t, key);
+}
+
+qoaiter qoa_end_i32(const qoatable *t)
+{
+    return t->asize;
+}
+
 /* Public Interface */
 #define qoa_create(name)           qoa_create_##name()
 #define qoa_init(name, t)          qoa_init_##name(t)
 #define qoa_destroy(name, t)       qoa_destroy_##name(t)
 #define qoa_size(name, t)          qoa_size_##name(t)
-#define qoa_valid(name, t, iter)   qoa_valid_##name(t, it)
-#define qoa_exist(name, t, iter)   qoa_exist_##name(t, it)
+#define qoa_valid(name, t, iter)   qoa_valid_##name(t, iter)
+#define qoa_exist(name, t, iter)   qoa_exist_##name(t, iter)
 #define qoa_resize(name, t, asize) qoa_resize_##name(t, asize)
 #define qoa_resize_fast(name, t, asize) qoa_resize_fast_##name(t, asize)
 #define qoa_insert(name, t, key)   qoa_insert_##name(t, key)
+#define qoa_put(name, t, key, ret) qoa_put_##name(t, key, ret)
+#define qoa_key(name, t, iter)     qoa_key_##name(t, iter)
+#define qoa_val(name, t, iter)     qoa_val_##name(t, iter)
+#define qoa_get(name, t, key)      qoa_get_##name(t, key)
+#define qoa_find(name, t, key)     qoa_find_##name(t, key)
+#define qoa_end(name, t)           qoa_end_##name(t)
 
 #undef flag_t
 #undef key_t
