@@ -179,6 +179,7 @@ Ensure(QOATable, can_insert_strings_and_lookup)
         res = qoa_insert(str, t, str);
         assert_that(res.result, is_not_equal_to(QOA_ERROR));
         assert_that(*qoa_key(str, t, res.iter), is_equal_to_string(buf));
+        *qoa_val(str, t, res.iter) = i;
     }
 
     /* lookup keys - present */
@@ -188,6 +189,7 @@ Ensure(QOATable, can_insert_strings_and_lookup)
         iter = qoa_find(str, t, buf);
         assert_that(iter, is_not_equal_to(qoa_end(str, t)));
         assert_that(*qoa_key(str, t, iter), is_equal_to_string(buf));
+        assert_that_double(*qoa_val(str, t, iter), is_equal_to_double(i));
     }
 
     /* lookup keys - missing */
@@ -222,6 +224,7 @@ Ensure(QOATable, can_insert_strings_and_lookup)
         iter = qoa_get(str, t, buf);
         assert_that(iter, is_not_equal_to(qoa_end(str, t)));
         assert_that(*qoa_key(str, t, iter), is_equal_to_string(buf));
+        assert_that_double(*qoa_val(str, t, iter), is_equal_to_double(i));
     }
 
     qoa_destroy2(str, t, free_string_keys);
