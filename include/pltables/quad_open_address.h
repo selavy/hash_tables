@@ -51,23 +51,23 @@
 
 #define QOA_DECLARE(name, key_t, val_t)                                        \
     QOA__TYPES(name, key_t, val_t)                                             \
-    QOA__PROTOS(name, qoatable_t(name), key_t, val_t)
+    QOA__PROTOS(name, qoatable_t(name), qoakey_t(name), qoaval_t(name))
 
 #define QOA_INIT2(name, scope, key_t, val_t, hashfn, keyeq)                    \
     QOA__TYPES(name, key_t, val_t)                                             \
-    QOA__IMPLS(name, scope, qoatable_t(name), key_t, val_t, hashfn, keyeq)
+    QOA__IMPLS(name, scope, qoatable_t(name), qoakey_t(name), qoaval_t(name),  \
+               hashfn, keyeq)
 
 #define QOA_INIT(name, key_t, val_t, hashfn, keyeq)                            \
     QOA_INIT2(name, static inline, key_t, val_t, hashfn, keyeq)
 
 /* define a table of int -> val_t */
-#define QOA_INT_INIT(name, val_t, hashfn)                                      \
+#define QOA_INIT_INT(name, val_t, hashfn)                                      \
     QOA_INIT(name, int, val_t, hashfn, qoa_i32_eq)
 
-typedef char *qoastr_t;
 /* define a table of str -> val_t */
-#define QOA_STR_INIT(name, val_t, hashfn)                                      \
-    QOA_INIT(name, qoastr_t, val_t, hashfn, qoa_str_eq)
+#define QOA_INIT_STR(name, val_t, hashfn)                                      \
+    QOA_INIT(name, char *, val_t, hashfn, qoa_str_eq)
 
 /* --- Common Hash Functions --- */
 
@@ -196,8 +196,8 @@ typedef struct qoaresult_s qoaresult;
     struct qoatable__##name##_s                                                \
     {                                                                          \
         uint32_t *flags;                                                       \
-        key_t *keys;                                                           \
-        val_t *vals;                                                           \
+        qoakey_t(name) * keys;                                                 \
+        qoaval_t(name) * vals;                                                 \
         uint32_t size;                                                         \
         uint32_t asize;                                                        \
         uint32_t used;                                                         \
@@ -469,9 +469,9 @@ typedef struct qoaresult_s qoaresult;
         return 1;                                                              \
     }                                                                          \
                                                                                \
-    scope int qoa_isempty_##name(const table_t *t) { return t->size != 0; }    \
+    scope int qoa_isempty_##name(const table_t *t) { return t->size == 0; }    \
                                                                                \
-    struct qoa__empty_dummy_struct_##name                                      \
+    struct qoa__empty_struct_to_end_macro_with_semicolon_##name                \
     {                                                                          \
     }
 
