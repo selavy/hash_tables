@@ -149,46 +149,45 @@ int qoa_exist_i32(const qoatable *t, qoaiter iter)
 
 int qoa_resize_fast_i32(qoatable *t, int newasize)
 {
-    flag_t *newflags, *oldflags = t->flags;
+    flag_t *flags, *oldflags = t->flags;
     key_t key, *keys;
     val_t val, *vals;
     int j, k, i, step, oldasize = t->asize, mask = newasize - 1;
     assert(newasize >= QOA_MIN_TABLE_SIZE);
-    assert((newasize & (newasize - 1)) == 0); /* table size must be a power of 2 */
+    assert((newasize & (newasize - 1)) == 0);
     assert(t->size <= qoa_max_load_factor(newasize));
-    newflags = (flag_t*)qoa_calloc(qoa__fsize(newasize), sizeof(flag_t));
+    flags = (flag_t*)qoa_calloc(qoa__fsize(newasize), sizeof(flag_t));
     keys = (key_t*)qoa_reallocarray(t->keys, newasize, sizeof(key_t));
     vals = (val_t*)qoa_reallocarray(t->vals, newasize, sizeof(val_t));
-    if (!newflags || !keys || !vals) {
-        free(newflags); free(keys); free(vals);
+    if (!flags || !keys || !vals) {
+        free(flags); free(keys); free(vals);
         return -1;
     }
-    memset(newflags, 0xaa, qoa__fsize(newasize) * sizeof(flag_t));
+    memset(flags, 0xaa, qoa__fsize(newasize) * sizeof(flag_t));
     for (j = 0; j < oldasize; ++j) {
         if (!qoa__islive(oldflags, j))
             continue;
         key = keys[j];
         val = vals[j];
         qoa__set_isdel_true(oldflags, j);
-        for (;;) { /* kick-out process */
+        for (;;) {
             k = qoa__hash_func(key);
             i = k & mask;
             step = 0;
             while (!qoa__isempty(oldflags, i)) i = (i + (++step)) & mask;
-            qoa__set_isempty_false(newflags, i);
+            qoa__set_isempty_false(flags, i);
             if (i < oldasize && qoa__islive(oldflags, i)) {
                 qoa__swapkeys(keys[i], key);
                 qoa__swapvals(vals[i], val);
                 qoa__set_isdel_true(oldflags, i);
             } else {
-                /* write the element and jump out of the loop */
                 keys[i] = key;
                 vals[i] = val;
                 break;
             }
         }
     }
-    t->flags = newflags;
+    t->flags = flags;
     t->keys = keys;
     t->vals = vals;
     t->asize = newasize;
