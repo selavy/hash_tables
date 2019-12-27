@@ -1,5 +1,6 @@
 #include <iostream>
 #include <pltables/qoatable.h>
+#include <pltables/loatable.h>
 #include <klib/khash.h>
 #include <unordered_map>
 #include <unordered_set>
@@ -34,8 +35,7 @@ int main(int argc, char **argv)
     StlTable  stl_table;
     KlibTable klib_table = kh_init_klib();
     QoaTable  qoa_table = qoa_create(qoa);
-
-    qoa_resize(qoa, qoa_table, 1 << 10);
+    loatable* loa_table = loacreate();
 
     for (int iter_ = 0; iter_ < M; ++iter_) {
         // insert keys
@@ -62,11 +62,20 @@ int main(int argc, char **argv)
             if (stl_result.second) {
                 *qoa_val(qoa, qoa_table, qoa_result.iter) = val;
             }
+
+            // LOA
+            auto loa_result = loainsert(loa_table, key);
+            assert(loa_result.result != LOA_ERROR);
+            assert(stl_result.second == (loa_result.result == LOA_INSERTED));
+            if (stl_result.second) {
+                *loaval(loa_table, loa_result.iter) = val;
+            }
         }
 
         // sizes should be same
         assert(kh_size(klib_table) == stl_table.size());
         assert(qoa_size(qoa, qoa_table) == stl_table.size());
+        assert(loasize(loa_table) == stl_table.size());
         std::cout << stl_table.size() << "\t";
 
         // lookup keys
@@ -90,6 +99,13 @@ int main(int argc, char **argv)
                 assert(iter != qoa_end(qoa, qoa_table));
                 assert(*qoa_key(qoa, qoa_table, iter) == key);
                 assert(*qoa_val(qoa, qoa_table, iter) == val);
+            }
+
+            { // LOA
+                auto iter = loaget(loa_table, key);
+                assert(iter != loaend(loa_table));
+                assert(*loakey(loa_table, iter) == key);
+                assert(*loaval(loa_table, iter) == val);
             }
         }
 
@@ -120,6 +136,16 @@ int main(int argc, char **argv)
                     assert(*qoa_val(qoa, qoa_table, iter) == stl_iter->second);
                 }
             }
+
+            { // LOA
+                auto iter = loaget(loa_table, key);
+                bool found = iter != loaend(loa_table);
+                assert(found == stl_found);
+                if (found) {
+                    assert(*loakey(loa_table, iter) == key);
+                    assert(*loaval(loa_table, iter) == stl_iter->second);
+                }
+            }
         }
 
         // delete some keys
@@ -145,17 +171,24 @@ int main(int argc, char **argv)
                 int result = qoa_erase(qoa, qoa_table, key);
                 assert(result == 1);
             }
+
+            { // LOA
+                int result = loaerase(loa_table, key);
+                assert(result == 1);
+            }
         }
 
         // sizes should be same
         assert(kh_size(klib_table) == stl_table.size());
         assert(qoa_size(qoa, qoa_table) == stl_table.size());
+        assert(loasize(loa_table) == stl_table.size());
         std::cout << stl_table.size() << "\n";
     }
 
     // clean up
     kh_destroy_klib(klib_table);
     qoa_destroy(qoa, qoa_table);
+    loadestroy(loa_table);
 
     printf("Passed.\n");
 

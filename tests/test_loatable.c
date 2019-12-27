@@ -17,7 +17,7 @@ typedef khash_t(m32)* bitstate;
 
 Ensure(LOATable, can_set_and_check_flags)
 {
-    const int N = 8;
+    const int N = 32;
     const int fsize = loa_fsize(N);
     flg_t *flags = calloc(fsize, sizeof(*flags));
 
@@ -119,9 +119,30 @@ Ensure(LOATable, can_set_and_check_flags)
     }
 }
 
+Ensure(LOATable, can_insert_and_lookup_keys)
+{
+    loatable* t = loacreate();
+    loaresult res;
+
+    // assert_that(1, is_equal_to(2));
+
+    res = loainsert(t, 1);
+    assert_that(res.result, is_equal_to(LOA_INSERTED));
+    assert_that(res.iter, is_not_equal_to(loaend(t)));
+    assert_that(*loakey(t, res.iter), is_equal_to(1));
+
+    res = loainsert(t, 1);
+    assert_that(res.result, is_equal_to(LOA_PRESENT));
+    assert_that(res.iter, is_not_equal_to(loaend(t)));
+    assert_that(*loakey(t, res.iter), is_equal_to(1));
+
+    loadestroy(t);
+}
+
 TestSuite *loatable_tests()
 {
     TestSuite *suite = create_test_suite();
     add_test_with_context(suite, LOATable, can_set_and_check_flags);
+    add_test_with_context(suite, LOATable, can_insert_and_lookup_keys);
     return suite;
 }
