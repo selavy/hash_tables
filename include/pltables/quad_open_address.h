@@ -157,13 +157,30 @@ static inline int qoa__islive(const uint32_t *flag, int i)
 {
     return (qoa__iseither(flag, i) == 0);
 }
-#define qoa__set_isdel_false(flag, i)                                          \
-    (flag[i >> 4] &= ~(1ul << ((i & 0xfU) << 1)))
-#define qoa__set_isempty_false(flag, i)                                        \
-    (flag[i >> 4] &= ~(2ul << ((i & 0xfU) << 1)))
-#define qoa__set_isboth_false(flag, i)                                         \
-    (flag[i >> 4] &= ~(3ul << ((i & 0xfU) << 1)))
-#define qoa__set_isdel_true(flag, i) (flag[i >> 4] |= 1ul << ((i & 0xfU) << 1))
+// #define qoa__set_isdel_false(flag, i)                                          \
+//     (flag[i >> 4] &= ~(1ul << ((i & 0xfU) << 1)))
+static inline void qoa__set_isdel_false(uint32_t *flag, int i)
+{
+    flag[i >> 4] &= ~(1ul << ((i & 0xfU) << 1));
+}
+// #define qoa__set_isempty_false(flag, i)                                        \
+//     (flag[i >> 4] &= ~(2ul << ((i & 0xfU) << 1)))
+static inline void qoa__set_isempty_false(uint32_t *flag, int i)
+{
+    flag[i >> 4] &= ~(2ul << ((i & 0xfU) << 1));
+}
+// #define qoa__set_isboth_false(flag, i)                                         \
+//     (flag[i >> 4] &= ~(3ul << ((i & 0xfU) << 1)))
+static inline void qoa__set_isboth_false(uint32_t *flag, int i)
+{
+    flag[i >> 4] &= ~(3ul << ((i & 0xfU) << 1));
+}
+// #define qoa__set_isdel_true(flag, i) (flag[i >> 4] |= 1ul << ((i & 0xfU) <<
+// 1))
+static inline void qoa__set_isdel_true(uint32_t *flag, int i)
+{
+    flag[i >> 4] |= 1ul << ((i & 0xfU) << 1);
+}
 #define qoa__swap(a, b, tmp)                                                   \
     {                                                                          \
         tmp = a;                                                               \
