@@ -127,12 +127,36 @@ static inline int qoa_str_eq(const char *a, const char *b)
 #define qoa_reallocarray(ptr, nmemb, size) reallocarray(ptr, nmemb, size)
 #define qoa_freearray(ptr, nmemb, size) free(ptr)
 #define QOA_MIN_TABLE_SIZE 4
-#define qoa__max_load_factor(asize) ((int)(0.77 * (asize) + 0.5))
-#define qoa__fsize(x) ((x) / sizeof(uint32_t))
-#define qoa__isempty(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 2)
-#define qoa__isdel(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 1)
-#define qoa__iseither(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 3)
-#define qoa__islive(flag, i) (qoa__iseither(flag, i) == 0)
+// #define qoa__max_load_factor(asize) ((int)(0.77 * (asize) + 0.5))
+static inline int qoa__max_load_factor(int asize)
+{
+    return (int)(0.77 * (asize) + 0.5);
+}
+// #define qoa__fsize(x) ((x) / sizeof(uint32_t))
+static inline size_t qoa__fsize(int x)
+{
+    return x / sizeof(uint32_t);
+}
+// #define qoa__isempty(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 2)
+static inline int qoa__isempty(const uint32_t *flag, int i)
+{
+    return ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 2);
+}
+// #define qoa__isdel(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 1)
+static inline int qoa__isdel(const uint32_t *flag, int i)
+{
+    return ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 1);
+}
+// #define qoa__iseither(flag, i) ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 3)
+static inline int qoa__iseither(const uint32_t *flag, int i)
+{
+    return ((flag[i >> 4] >> ((i & 0xfU) << 1)) & 3);
+}
+// #define qoa__islive(flag, i) (qoa__iseither(flag, i) == 0)
+static inline int qoa__islive(const uint32_t *flag, int i)
+{
+    return (qoa__iseither(flag, i) == 0);
+}
 #define qoa__set_isdel_false(flag, i)                                          \
     (flag[i >> 4] &= ~(1ul << ((i & 0xfU) << 1)))
 #define qoa__set_isempty_false(flag, i)                                        \
@@ -429,13 +453,23 @@ typedef struct qoaresult_s qoaresult;
         k = qoa__hash(key);                                                    \
         i = k & mask;                                                          \
         last = i;                                                              \
-        while (qoa__islive(flags, i) &&                                        \
-               (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))) {             \
+        /* TODO: switch is more readable? */                                   \
+        for (;;) {                                                             \
+            if (qoa__isempty(flags, i))                                        \
+                return t->asize;                                               \
+            if (qoa__islive(flags, i) && qoa__eq(keys[i], key))                \
+                return i;                                                      \
             i = (i + (++step)) & mask;                                         \
             if (i == last)                                                     \
                 return t->asize;                                               \
         }                                                                      \
-        return qoa__iseither(flags, i) ? t->asize : i;                         \
+        /* while (!qoa__isempty(flags, i) &&                            */     \
+        /*        (qoa__isdel(flags, i) || !qoa__eq(keys[i], key))) {   */     \
+        /*     i = (i + (++step)) & mask;                               */     \
+        /*     if (i == last)                                           */     \
+        /*         return t->asize;                                     */     \
+        /* }                                                            */     \
+        /* return qoa__iseither(flags, i) ? t->asize : i;               */     \
     }                                                                          \
                                                                                \
     scope qoaiter qoa_find_##name(const table_t *t, key_t key)                 \
