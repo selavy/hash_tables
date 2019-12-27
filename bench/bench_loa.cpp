@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <pltables/linear_open_address.h>
+#include <pltables++/linear_open_address.h>
 #include <klib/khash.h>
 #include <unordered_map>
 #include <random>

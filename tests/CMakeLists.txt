@@ -13,6 +13,7 @@ target_compile_features(stress PUBLIC cxx_std_17)
 
 add_executable(ctests
     test_qoatable.c
+    test_loatable.c
     cgreen_tests.c
     )
 target_link_libraries(ctests PUBLIC CGreen PLTables)

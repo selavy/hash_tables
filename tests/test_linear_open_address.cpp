@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <pltables/linear_open_address.h>
+#include <pltables++/linear_open_address.h>
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
