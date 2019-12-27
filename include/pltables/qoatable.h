@@ -1,5 +1,5 @@
-#ifndef QUAD_OPEN_ADDRESS__H_
-#define QUAD_OPEN_ADDRESS__H_
+#ifndef QOATABLE__H_
+#define QOATABLE__H_
 
 #include <assert.h>
 #include <stdint.h>
@@ -531,4 +531,4 @@ typedef struct qoaresult_s qoaresult;
     {                                                                          \
     }
 
-#endif // QUAD_OPEN_ADDRESS__H_
+#endif // QOATABLE__H_

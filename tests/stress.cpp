@@ -1,5 +1,5 @@
 #include <iostream>
-#include <pltables/quad_open_address.h>
+#include <pltables/qoatable.h>
 #include <klib/khash.h>
 #include <unordered_map>
 #include <unordered_set>

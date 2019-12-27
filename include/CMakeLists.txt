@@ -13,7 +13,7 @@ target_include_directories(PLTables++
 add_library(PLTables INTERFACE)
 target_sources(PLTables
     INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/pltables/quad_open_address.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/pltables/qoatable.h
     )
 # target_compile_features(PLTables INTERFACE cxx_std_17)
 target_include_directories(PLTables

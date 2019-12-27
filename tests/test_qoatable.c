@@ -1,5 +1,5 @@
 #include <cgreen/cgreen.h>
-#include <pltables/quad_open_address.h>
+#include <pltables/qoatable.h>
 #include <string.h>
 
 QOA_INIT_INT(i32, int, qoa_i32_hash_identity);
