@@ -18,4 +18,7 @@ add_executable(ctests
     )
 target_link_libraries(ctests PUBLIC CGreen PLTables)
 
-
+add_executable(crealloc_speed crealloc_speed.c)
+target_compile_features(crealloc_speed PUBLIC c_std_99)
+add_executable(cmalloc_speed cmalloc_speed.c)
+target_compile_features(cmalloc_speed PUBLIC c_std_99)

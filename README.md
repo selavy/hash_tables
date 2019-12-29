@@ -6,6 +6,7 @@
 * robinhood
 * open-addressing
 * separate-chaining
+* fibonacci hashing
 
 # To test
 * operations

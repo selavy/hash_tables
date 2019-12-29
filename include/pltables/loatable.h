@@ -8,6 +8,7 @@
 
 /* --- User Defines --- */
 
+#define USE_FIBONACCI_HASHING
 #define key_t int
 #define val_t int
 
@@ -45,7 +46,11 @@ struct loaresult_s
 };
 typedef struct loaresult_s loaresult;
 
+#ifdef USE_FIBONACCI_HASHING
+#define loahash(x) loa_fibonacci_hash32(loa_hash_int(x))
+#else
 #define loahash(x) loa_hash_int(x)
+#endif
 #define loaeq(a, b) loa_eq_int(a, b)
 #ifndef reallocarray
 #define reallocarray(ptr, nmemb, size) realloc(ptr, (nmemb) * (size))
@@ -64,6 +69,12 @@ typedef struct loaresult_s loaresult;
 
 const static int LOA_MINSIZE = 4;
 
+uint64_t loa_fibonacci_hash64(uint64_t h) {
+    return h * 11400714819323198485llu;
+}
+uint32_t loa_fibonacci_hash32(uint32_t h) {
+    return h * 2654435769u;
+}
 int loa_maxloadfactor(int asize)
 {
     return 0.77 * asize + 0.5;

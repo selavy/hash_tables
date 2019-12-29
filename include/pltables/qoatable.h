@@ -12,6 +12,8 @@
  * Heavily borrowed from khash. TODO: add MIT license
  */
 
+#define USE_FIBONACCI_HASHING
+
 /* --- Public API --- */
 #define qoatable_t(name) qoatable__##name##_t
 #define qoa_create(name) qoa_create_##name()
@@ -64,6 +66,20 @@
 
 /* --- Common Hash Functions --- */
 
+#ifdef USE_FIBONACCI_HASHING
+#define qoa__hashxform(x) qoa_fibonacci_hash32(x)
+#else
+#define qoa__hashxform(x) x
+#endif
+
+static inline uint64_t qoa_fibonacci_hash64(uint64_t h)
+{
+    return h * 11400714819323198485llu;
+}
+static inline uint32_t qoa_fibonacci_hash32(uint32_t h)
+{
+    return h * 2654435769u;
+}
 static inline int qoa_i32_hash_identity(int key)
 {
     return key;
@@ -342,7 +358,7 @@ typedef struct qoaresult_s qoaresult;
             val = vals[j];                                                     \
             qoa__set_isdel_true(oldflags, j);                                  \
             for (;;) {                                                         \
-                k = qoa__hash(key);                                            \
+                k = qoa__hashxform(qoa__hash(key));                            \
                 i = k & mask;                                                  \
                 step = 0;                                                      \
                 while (!qoa__isempty(flags, i))                                \
@@ -400,7 +416,7 @@ typedef struct qoaresult_s qoaresult;
         keys = t->keys;                                                        \
         step = 0;                                                              \
         x = site = asize;                                                      \
-        k = qoa__hash(key);                                                    \
+        k = qoa__hashxform(qoa__hash(key));                                    \
         i = k & mask;                                                          \
         if (qoa__isempty(flags, i)) {                                          \
             x = i;                                                             \
@@ -467,7 +483,7 @@ typedef struct qoaresult_s qoaresult;
         if (!t->asize)                                                         \
             return 0;                                                          \
         step = 0;                                                              \
-        k = qoa__hash(key);                                                    \
+        k = qoa__hashxform(qoa__hash(key));                                    \
         i = k & mask;                                                          \
         last = i;                                                              \
         /* TODO: switch is more readable? */                                   \
