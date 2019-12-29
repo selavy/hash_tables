@@ -4,3 +4,10 @@ target_link_libraries(bench-loa
     PLTables++
     Google::Benchmark
     )
+
+add_executable(bench-vector bench_vector.cpp)
+target_link_libraries(bench-vector
+    PUBLIC
+    PLTables++
+    Google::Benchmark
+    )
