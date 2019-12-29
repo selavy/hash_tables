@@ -40,11 +40,12 @@ public:
 
     Vector& operator=(const Vector& other) noexcept
     {
+        T* tmp = static_cast<T*>(calloc(sizeof(T), other._asize));
+        _copy_data(tmp, other._data, other._size);
         _free_data(_data, _size);
         _size = other._size;
         _asize = other._asize;
-        _data = static_cast<T*>(calloc(sizeof(T), other._asize));
-        _copy_data(_data, other._data, other._size);
+        _data = tmp;
         return *this;
     }
 
@@ -60,11 +61,7 @@ public:
         return *this;
     }
 
-    ~Vector() noexcept
-    {
-        _free_data(_data, _size);
-        _size = _asize = 0;
-    }
+    ~Vector() noexcept { clear(); }
 
     void append(const T& x) noexcept
     {
@@ -98,9 +95,10 @@ private:
         assert(newasize >= _size);
         // clang-format off
         if constexpr(std::is_trivially_copyable_v<T>) {
-            _data = static_cast<T*>(realloc(_data, newasize * sizeof(T)));
+            _data = static_cast<T*>(realloc(_data, sizeof(T) * newasize));
         } else {
-            throw "TODO: fix me";
+            T* tmp = static_cast<T*>(calloc(sizeof(T), newasize));
+            _data = _move_data_not_trivial(tmp, _data, _size);
         }
         // clang-format on
         _asize = newasize;
@@ -118,16 +116,68 @@ private:
         free(ptr);
     }
 
-    static void _copy_data(T* dst, const T* src, const int size)
+    // `dst` must not be initialized yet
+    static T* _move_data_not_trivial(T* dst, T* src, const int size)
     {
-        if constexpr (std::is_trivially_copyable_v<T>) {
-            memcpy(dst, src, sizeof(T) * size);
-        } else {
-            // TODO: handle if throws
+        assert(src != nullptr || size == 0);
+        assert(dst != nullptr || size == 0);
+        // clang-format off
+        if constexpr (std::is_nothrow_move_constructible_v<T>) {
             for (int i = 0; i < size; ++i) {
-                dst[i] = src[i];
+                new (&dst[i]) T{std::move(src[i])};
+            }
+        } else if constexpr (std::is_nothrow_copy_constructible_v<T>) {
+            for (int i = 0; i < size; ++i) {
+                new (&dst[i]) T{src[i]};
+                src[i].~T();
+            }
+        } else {
+            int i;
+            try {
+                for (i = 0; i < size; ++i) {
+                    new (&dst[i]) T{src[i]};
+                }
+            } catch (...) {
+                for (; i >= 0; --i) {
+                    dst[i].~T();
+                }
+                throw;
+            }
+            for (i = 0; i < size; ++i) {
+                src[i].~T();
             }
         }
+        // clang-format on
+        free(src);
+        return dst;
+    }
+
+    // `dst` must not be initialized yet
+    static void _copy_data(T* dst, const T* src, const int size)
+    {
+        assert(src != nullptr || size == 0);
+        assert(dst != nullptr || size == 0);
+        // clang-format off
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memcpy(dst, src, sizeof(T) * size);
+        } else if constexpr (std::is_nothrow_copy_constructible_v<T>) {
+            for (int i = 0; i < size; ++i) {
+                new (&dst[i]) T(src[i]);
+            }
+        } else {
+            int i;
+            try {
+                for (i = 0; i < size; ++i) {
+                    new (&dst[i]) T(src[i]);
+                }
+            } catch (...) {
+                for (; i >= 0; --i) {
+                    dst[i].~T();
+                }
+                throw;
+            }
+        }
+        // clang-format on
     }
 
 private:
