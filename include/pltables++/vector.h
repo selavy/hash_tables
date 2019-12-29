@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <type_traits>
+#include <memory>
+
 
 namespace plt {
 
@@ -26,8 +28,11 @@ public:
                                            _asize{ other._asize }
     {
         _data = static_cast<T*>(calloc(sizeof(*_data), _asize));
-        // TODO: work for non trivial types
-        memcpy(_data, other._data, sizeof(*_data) * _size);
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memcpy(_data, other._data, sizeof(*_data) * _size);
+        } else {
+            throw "TODO: fix me";
+        }
     }
 
     Vector(Vector&& other) noexcept : _data{ other._data },
@@ -40,6 +45,7 @@ public:
 
     Vector& operator=(const Vector& other) noexcept
     {
+        // TODO: run destructors if needed
         free(_data);
         _size = other._size;
         _asize = other._asize;
@@ -51,6 +57,7 @@ public:
 
     Vector& operator=(Vector&& other) noexcept
     {
+        // TODO: run destructors if needed
         free(_data);
         _size = other._size;
         other._size = 0;
@@ -63,6 +70,11 @@ public:
 
     ~Vector() noexcept
     {
+        if constexpr (!std::is_trivially_destructible_v<T>) {
+            for (int i = 0; i < _size; ++i) {
+                _data[i].~T();
+            }
+        }
         free(_data);
         _size = _asize = 0;
     }
@@ -104,8 +116,7 @@ private:
                   static_cast<T*>(realloc(_data, newasize * sizeof(*_data)));
             }
         else {
-            // TODO: work for non-trivial types
-            throw 42;
+            throw "TODO: fix me";
         }
         _asize = newasize;
     }
