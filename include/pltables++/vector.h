@@ -2,9 +2,8 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <type_traits>
 #include <memory>
-
+#include <type_traits>
 
 namespace plt {
 
@@ -18,7 +17,7 @@ public:
 
     Vector(int size, T elem = T()) noexcept : _size{ size }, _asize{ size }
     {
-        _data = static_cast<T*>(calloc(sizeof(*_data), _asize));
+        _data = static_cast<T*>(calloc(sizeof(T), _asize));
         for (int i = 0; i < _size; ++i) {
             new (&_data[i]) T{ elem };
         }
@@ -27,12 +26,8 @@ public:
     Vector(const Vector& other) noexcept : _size{ other._size },
                                            _asize{ other._asize }
     {
-        _data = static_cast<T*>(calloc(sizeof(*_data), _asize));
-        if constexpr (std::is_trivially_copyable_v<T>) {
-            memcpy(_data, other._data, sizeof(*_data) * _size);
-        } else {
-            throw "TODO: fix me";
-        }
+        _data = static_cast<T*>(calloc(sizeof(T), _asize));
+        _copy_data(_data, other._data, other._size);
     }
 
     Vector(Vector&& other) noexcept : _data{ other._data },
@@ -45,20 +40,17 @@ public:
 
     Vector& operator=(const Vector& other) noexcept
     {
-        // TODO: run destructors if needed
-        free(_data);
+        _free_data(_data, _size);
         _size = other._size;
         _asize = other._asize;
-        _data = static_cast<T*>(calloc(sizeof(*_data), other._asize));
-        // TODO: work for non trivial types
-        memcpy(_data, other._data, sizeof(*_data) * _size);
+        _data = static_cast<T*>(calloc(sizeof(T), other._asize));
+        _copy_data(_data, other._data, other._size);
         return *this;
     }
 
     Vector& operator=(Vector&& other) noexcept
     {
-        // TODO: run destructors if needed
-        free(_data);
+        _free_data(_data, _size);
         _size = other._size;
         other._size = 0;
         _asize = other._asize;
@@ -70,12 +62,7 @@ public:
 
     ~Vector() noexcept
     {
-        if constexpr (!std::is_trivially_destructible_v<T>) {
-            for (int i = 0; i < _size; ++i) {
-                _data[i].~T();
-            }
-        }
-        free(_data);
+        _free_data(_data, _size);
         _size = _asize = 0;
     }
 
@@ -94,7 +81,7 @@ public:
 
     void clear() noexcept
     {
-        free(_data);
+        _free_data(_data, _size);
         _size = _asize = 0;
     }
 
@@ -109,16 +96,38 @@ private:
     void _grow(int newasize) noexcept
     {
         assert(newasize >= _size);
-        if
-            constexpr(std::is_trivially_copyable_v<T>)
-            {
-                _data =
-                  static_cast<T*>(realloc(_data, newasize * sizeof(*_data)));
-            }
-        else {
+        // clang-format off
+        if constexpr(std::is_trivially_copyable_v<T>) {
+            _data = static_cast<T*>(realloc(_data, newasize * sizeof(T)));
+        } else {
             throw "TODO: fix me";
         }
+        // clang-format on
         _asize = newasize;
+    }
+
+    static void _free_data(T* ptr, const int size) noexcept
+    {
+        // clang-format off
+        if constexpr (!std::is_trivially_destructible_v<T>) {
+            for (int i = 0; i < size; ++i) {
+                ptr[i].~T();
+            }
+        }
+        // clang-format on
+        free(ptr);
+    }
+
+    static void _copy_data(T* dst, const T* src, const int size)
+    {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memcpy(dst, src, sizeof(T) * size);
+        } else {
+            // TODO: handle if throws
+            for (int i = 0; i < size; ++i) {
+                dst[i] = src[i];
+            }
+        }
     }
 
 private:
