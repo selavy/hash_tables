@@ -1,9 +1,15 @@
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <type_traits>
+
+
+#ifndef restrict
+#define restrict __restrict
+#endif
 
 namespace plt {
 
@@ -40,30 +46,40 @@ public:
 
     Vector& operator=(const Vector& other) noexcept
     {
-        T* tmp = static_cast<T*>(calloc(sizeof(T), other._asize));
-        _copy_data(tmp, other._data, other._size);
-        _free_data(_data, _size);
-        _size = other._size;
-        _asize = other._asize;
-        _data = tmp;
+        if (this != &other) {
+            if (other._size > _asize) {
+                T* tmp = static_cast<T*>(calloc(sizeof(T), other._asize));
+                _copy_data(tmp, other._data, other._size);
+                _free_data(_data, _size);
+                _data = tmp;
+                _asize = other._asize;
+            } else {
+                // already have enough room, try to use it
+                _copy_assign(_data, other._data, other._size, _size);
+            }
+            _size = other._size;
+        }
         return *this;
     }
 
     Vector& operator=(Vector&& other) noexcept
     {
-        _free_data(_data, _size);
-        _size = other._size;
-        other._size = 0;
-        _asize = other._asize;
-        other._asize = 0;
-        _data = other._data;
-        other._data = nullptr;
+        if (this != &other) {
+            _free_data(_data, _size);
+            _size = other._size;
+            other._size = 0;
+            _asize = other._asize;
+            other._asize = 0;
+            _data = other._data;
+            other._data = nullptr;
+        }
         return *this;
     }
 
     ~Vector() noexcept { clear(); }
 
-    void append(const T& x) noexcept
+    // TODO: set noexcept specifier
+    void append(const T& x)
     {
         if (_size == _asize)
             _grow(1.5 * _asize + 4);
@@ -90,11 +106,15 @@ public:
     constexpr int capacity() const noexcept { return _asize; }
 
 private:
-    void _grow(int newasize) noexcept
+    // TODO: set noexcept specifier
+    void _grow(int newasize) noexcept(std::is_trivially_copyable_v<T> ||
+                                      std::is_nothrow_move_constructible_v<T> ||
+                                      std::is_nothrow_copy_constructible_v<T>)
     {
         assert(newasize >= _size);
         // clang-format off
-        if constexpr(std::is_trivially_copyable_v<T>) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            // TODO:  does this need IsTriviallyDestructible as well?
             _data = static_cast<T*>(realloc(_data, sizeof(T) * newasize));
         } else {
             T* tmp = static_cast<T*>(calloc(sizeof(T), newasize));
@@ -104,7 +124,7 @@ private:
         _asize = newasize;
     }
 
-    static void _free_data(T* ptr, const int size) noexcept
+    static void _free_data(T* restrict ptr, const int size) noexcept
     {
         // clang-format off
         if constexpr (!std::is_trivially_destructible_v<T>) {
@@ -116,8 +136,11 @@ private:
         free(ptr);
     }
 
-    // `dst` must not be initialized yet
-    static T* _move_data_not_trivial(T* dst, T* src, const int size)
+    // `dst` must not be initialized yet, `src` is free'd
+    static T* _move_data_not_trivial(
+      T* restrict dst, T* restrict src,
+      const int size) noexcept(std::is_nothrow_move_constructible_v<T> ||
+                               std::is_nothrow_copy_constructible_v<T>)
     {
         assert(src != nullptr || size == 0);
         assert(dst != nullptr || size == 0);
@@ -152,8 +175,10 @@ private:
         return dst;
     }
 
-    // `dst` must not be initialized yet
-    static void _copy_data(T* dst, const T* src, const int size)
+    static void _copy_data(
+      T* restrict dst, const T* restrict src,
+      const int size) noexcept(std::is_trivially_copyable_v<T> ||
+                               std::is_nothrow_copy_constructible_v<T>)
     {
         assert(src != nullptr || size == 0);
         assert(dst != nullptr || size == 0);
@@ -176,6 +201,31 @@ private:
                 }
                 throw;
             }
+        }
+        // clang-format on
+    }
+
+    static void _copy_assign(
+      T* restrict dst, const T* restrict src, const int size,
+      int oldsize) noexcept(std::is_trivially_copyable_v<T> ||
+                            std::is_nothrow_copy_assignable_v<T>)
+    {
+        assert(src != nullptr || size == 0);
+        assert(dst != nullptr || size == 0);
+        // clang-format off
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memcpy(dst, src, sizeof(T) * size);
+        } else if constexpr (std::is_nothrow_copy_assignable_v<T>) {
+            for (int i = 0; i < size; ++i) {
+                dst[i] = src[i];
+            }
+        } else {
+            // can't maintain strong exception guarantee AND reuse the memory
+            // we already have.
+            T* tmp = static_cast<T*>(calloc(sizeof(T), size));
+            _copy_data(tmp, src, size);
+            _free_data(dst, oldsize);
+            dst = tmp;
         }
         // clang-format on
     }
