@@ -28,7 +28,9 @@ static void BM_VectorCopyAssign(benchmark::State& state)
       ->Arg(1 << 12)                                                           \
       ->Arg(1 << 14)                                                           \
       ->Arg(1 << 16)                                                           \
-      ->Arg(1 << 18)
+      ->Arg(1 << 18)                                                           \
+      ->Arg(1 << 20)                                                           \
+      ->Arg(1 << 21)
 
 using PltIntVec = plt::Vector<int>;
 using StlIntVec = std::vector<int>;

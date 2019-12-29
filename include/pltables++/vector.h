@@ -6,7 +6,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #ifndef restrict
 #define restrict __restrict
 #endif
@@ -17,7 +16,12 @@ template <class T>
 class Vector
 {
 public:
+    struct Iterator;
+    struct ConstIterator;
+
     using value_type = T;
+    using iterator = Iterator;
+    using const_iterator = ConstIterator;
 
     constexpr Vector() noexcept = default;
 
@@ -104,6 +108,12 @@ public:
     constexpr bool is_empty() const noexcept { return _size == 0; }
     constexpr int size() const noexcept { return _size; }
     constexpr int capacity() const noexcept { return _asize; }
+    constexpr iterator begin() noexcept { return iterator(_data); }
+    constexpr iterator end() noexcept { return iterator(_data + _size); }
+    constexpr const_iterator cbegin() const noexcept { return const_iterator(_data); }
+    constexpr const_iterator cend() const noexcept { return const_iterator(_data + _size); }
+    constexpr const_iterator begin() const noexcept { return cbegin(); }
+    constexpr const_iterator end() const noexcept { return cend(); }
 
 private:
     // TODO: set noexcept specifier
@@ -236,4 +246,163 @@ private:
     int _asize = 0;
 };
 
+template <class T>
+class Vector<T>::Iterator
+{
+    T* _ptr = nullptr;
+    friend class Vector<T>::ConstIterator;
+
+public:
+    constexpr explicit Iterator(T* ptr = nullptr) noexcept : _ptr(ptr) {}
+    constexpr Iterator(const Iterator& other) noexcept : _ptr(other._ptr) {}
+    constexpr Iterator(Iterator&& other) noexcept : _ptr(other._ptr)
+    {
+        other._ptr = nullptr;
+    }
+    constexpr Iterator& operator=(const Iterator& other) noexcept
+    {
+        _ptr = other._ptr;
+        return *this;
+    }
+    constexpr Iterator& operator=(Iterator&& other) noexcept
+    {
+        _ptr = other._ptr;
+        other._ptr = nullptr;
+        return *this;
+    }
+    constexpr T& operator*() noexcept { return *_ptr; }
+    constexpr T* operator->() noexcept { return _ptr; }
+    constexpr Iterator& operator++() noexcept
+    {
+        ++_ptr;
+        return *this;
+    }
+    constexpr Iterator operator++(int)noexcept
+    {
+        Iterator tmp{ *this };
+        ++(*this);
+        return tmp;
+    }
+    constexpr Iterator& operator+=(int x) noexcept
+    {
+        _ptr += x;
+        return *this;
+    }
+    constexpr Iterator operator+(int x) noexcept
+    {
+        Iterator tmp{ *this };
+        tmp += x;
+        return tmp;
+    }
+    constexpr Iterator& operator--() noexcept
+    {
+        --_ptr;
+        return *this;
+    }
+    constexpr Iterator operator--(int)noexcept
+    {
+        Iterator tmp{ *this };
+        --(*this);
+        return tmp;
+    }
+    constexpr Iterator& operator-=(int x) noexcept
+    {
+        _ptr -= x;
+        return *this;
+    }
+    constexpr Iterator operator-(int x) noexcept
+    {
+        Iterator tmp{ *this };
+        tmp -= x;
+        return tmp;
+    }
+    friend constexpr bool operator==(Iterator a, Iterator b) noexcept
+    {
+        return a._ptr == b._ptr;
+    }
+    friend constexpr bool operator!=(Iterator a, Iterator b) noexcept
+    {
+        return a._ptr != b._ptr;
+    }
+};
+
+template <class T>
+class Vector<T>::ConstIterator
+{
+    const T* _ptr = nullptr;
+
+public:
+    constexpr explicit ConstIterator(const T* ptr = nullptr) noexcept : _ptr(ptr) {}
+    constexpr ConstIterator(Iterator itr) noexcept : _ptr(itr._ptr) {}
+    constexpr ConstIterator(const ConstIterator& other) noexcept : _ptr(other._ptr) {}
+    constexpr ConstIterator(ConstIterator&& other) noexcept : _ptr(other._ptr)
+    {
+        other._ptr = nullptr;
+    }
+    constexpr ConstIterator& operator=(const ConstIterator& other) noexcept
+    {
+        _ptr = other._ptr;
+        return *this;
+    }
+    constexpr ConstIterator& operator=(ConstIterator&& other) noexcept
+    {
+        _ptr = other._ptr;
+        other._ptr = nullptr;
+        return *this;
+    }
+    constexpr const T& operator*() const noexcept { return *_ptr; }
+    constexpr const T* operator->() const noexcept { return _ptr; }
+    constexpr ConstIterator& operator++() noexcept
+    {
+        ++_ptr;
+        return *this;
+    }
+    constexpr ConstIterator operator++(int)noexcept
+    {
+        ConstIterator tmp{ *this };
+        ++(*this);
+        return tmp;
+    }
+    constexpr ConstIterator& operator+=(int x) noexcept
+    {
+        _ptr += x;
+        return *this;
+    }
+    constexpr ConstIterator operator+(int x) noexcept
+    {
+        ConstIterator tmp{ *this };
+        tmp += x;
+        return tmp;
+    }
+    constexpr ConstIterator& operator--() noexcept
+    {
+        --_ptr;
+        return *this;
+    }
+    constexpr ConstIterator operator--(int)noexcept
+    {
+        ConstIterator tmp{ *this };
+        --(*this);
+        return tmp;
+    }
+    constexpr ConstIterator& operator-=(int x) noexcept
+    {
+        _ptr -= x;
+        return *this;
+    }
+    constexpr ConstIterator operator-(int x) noexcept
+    {
+        ConstIterator tmp{ *this };
+        tmp -= x;
+        return tmp;
+    }
+    friend constexpr bool operator==(ConstIterator a, ConstIterator b) noexcept
+    {
+        return a._ptr == b._ptr;
+    }
+    friend constexpr bool operator!=(ConstIterator a, ConstIterator b) noexcept
+    {
+        return a._ptr != b._ptr;
+    }
+};
 } // ~plt

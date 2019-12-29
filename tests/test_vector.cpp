@@ -125,6 +125,41 @@ TEST_CASE("Vector - append")
 
     vec.shrink_to_fit();
     REQUIRE(vec.size() == vec.capacity());
+
+    SECTION("Iterators")
+    {
+        Vector<int>::iterator itr = vec.begin();
+        REQUIRE(itr != vec.end());
+        REQUIRE(*itr == 0);
+        itr += 3;
+        REQUIRE(*itr == 3);
+
+        itr = vec.begin();
+        Vector<int>::iterator itr2 = itr + 3;
+        REQUIRE(*itr2 == 3);
+        REQUIRE(*itr == 0);
+    }
+
+    SECTION("ConstIterator")
+    {
+        Vector<int>& cvec = vec;
+        Vector<int>::const_iterator it = cvec.cbegin();
+        REQUIRE(it == cvec.begin());
+        REQUIRE(it != cvec.end());
+        REQUIRE(*it == 0);
+        REQUIRE(*++it == 1);
+        REQUIRE(*it++ == 1);
+        REQUIRE(*++it == 3);
+    }
+
+    std::vector<int> other;
+    for (auto it : vec) {
+        other.push_back(it);
+    }
+    REQUIRE(vec.size() == (int)other.size());
+    for (int i = 0; i < vec.size(); ++i) {
+        REQUIRE(vec[i] == other[i]);
+    }
 }
 
 struct NoThrowMove
@@ -189,7 +224,10 @@ struct NotTrivial
     {
     }
 
-    NotTrivial(const NotTrivial& other) : x{ new int(*other.x) } {}
+    NotTrivial(const NotTrivial& other)
+      : x{ new int(*other.x) }
+    {
+    }
 
     ~NotTrivial() noexcept { delete x; }
 
