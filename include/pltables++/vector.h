@@ -10,6 +10,14 @@
 #define restrict __restrict
 #endif
 
+#ifndef __builtin_likely
+#define __builtin_likely(x) __builtin_expect(x, 1)
+#endif
+
+#ifndef __builtin_unlikely
+#define __builtin_unlikely(x) __builtin_expect(x, 0)
+#endif
+
 namespace plt {
 
 template <class T>
@@ -50,16 +58,16 @@ public:
 
     Vector& operator=(const Vector& other) noexcept
     {
-        if (this != &other) {
-            if (other._size > _asize) {
+        if (__builtin_likely(this != &other)) {
+            if (other._size <= _asize) {
+                // already have enough room, try to use it
+                _copy_assign(_data, other._data, other._size, _size);
+            } else {
                 T* tmp = static_cast<T*>(calloc(sizeof(T), other._asize));
                 _copy_data(tmp, other._data, other._size);
                 _free_data(_data, _size);
                 _data = tmp;
                 _asize = other._asize;
-            } else {
-                // already have enough room, try to use it
-                _copy_assign(_data, other._data, other._size, _size);
             }
             _size = other._size;
         }
@@ -68,7 +76,7 @@ public:
 
     Vector& operator=(Vector&& other) noexcept
     {
-        if (this != &other) {
+        if (__builtin_likely(this != &other)) {
             _free_data(_data, _size);
             _size = other._size;
             other._size = 0;
@@ -110,8 +118,14 @@ public:
     constexpr int capacity() const noexcept { return _asize; }
     constexpr iterator begin() noexcept { return iterator(_data); }
     constexpr iterator end() noexcept { return iterator(_data + _size); }
-    constexpr const_iterator cbegin() const noexcept { return const_iterator(_data); }
-    constexpr const_iterator cend() const noexcept { return const_iterator(_data + _size); }
+    constexpr const_iterator cbegin() const noexcept
+    {
+        return const_iterator(_data);
+    }
+    constexpr const_iterator cend() const noexcept
+    {
+        return const_iterator(_data + _size);
+    }
     constexpr const_iterator begin() const noexcept { return cbegin(); }
     constexpr const_iterator end() const noexcept { return cend(); }
 
@@ -226,9 +240,13 @@ private:
         if constexpr (std::is_trivially_copyable_v<T>) {
             memcpy(dst, src, sizeof(T) * size);
         } else if constexpr (std::is_nothrow_copy_assignable_v<T>) {
-            for (int i = 0; i < size; ++i) {
-                dst[i] = src[i];
+            const T* endp = dst + size;
+            while (dst != endp) {
+                *dst++ = *src++;
             }
+            // for (int i = 0; i < size; ++i) {
+            //     dst[i] = src[i];
+            // }
         } else {
             // can't maintain strong exception guarantee AND reuse the memory
             // we already have.
@@ -332,9 +350,15 @@ class Vector<T>::ConstIterator
     const T* _ptr = nullptr;
 
 public:
-    constexpr explicit ConstIterator(const T* ptr = nullptr) noexcept : _ptr(ptr) {}
+    constexpr explicit ConstIterator(const T* ptr = nullptr) noexcept
+      : _ptr(ptr)
+    {
+    }
     constexpr ConstIterator(Iterator itr) noexcept : _ptr(itr._ptr) {}
-    constexpr ConstIterator(const ConstIterator& other) noexcept : _ptr(other._ptr) {}
+    constexpr ConstIterator(const ConstIterator& other) noexcept
+      : _ptr(other._ptr)
+    {
+    }
     constexpr ConstIterator(ConstIterator&& other) noexcept : _ptr(other._ptr)
     {
         other._ptr = nullptr;
