@@ -3,7 +3,7 @@
 #
 add_library(Catch2 catch_main.cpp)
 target_include_directories(Catch2 PUBLIC "catch2/single_include")
-set_target_properties(Catch2 PROPERTIES CXX_STANDARD 17)
+target_compile_features(Catch2 INTERFACE cxx_std_17)
 add_library(Catch2::Catch2 ALIAS Catch2)
 
 #
@@ -27,8 +27,6 @@ else ()
 	set(CGREEN_LIBRARIES cgreen)
     set(CGREEN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/cgreen/include)
 endif (USE_SYSTEM_CGREEN)
-message("CGreen INCLUDE_DIRS = ${CGREEN_INCLUDE_DIRS}")
-message("CGreen LIBRARIES    = ${CGREEN_LIBRARIES}")
 
 add_library(CGreen SHARED cgreen_main.c)
 target_include_directories(CGreen PUBLIC ${CGREEN_INCLUDE_DIRS})
