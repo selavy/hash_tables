@@ -8,8 +8,8 @@
 
 
 // #define COPY_ASSIGN_TRIVIAL_TO_LARGER
-#define COPY_ASSIGN_TRIVIAL_TO_SMALLER
-// #define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
+// #define COPY_ASSIGN_TRIVIAL_TO_SMALLER
+#define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
 
 // append
 // pop
@@ -91,7 +91,6 @@ BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToSmaller, PltIntVec)
 COPY_ASSIGN_ARGS;
 BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToSmaller, StlIntVec)
 COPY_ASSIGN_ARGS;
-BENCHMARK_MAIN();
 #endif
 
 #ifdef COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
@@ -102,8 +101,8 @@ BENCHMARK_MAIN();
 template <class Cont>
 static void BM_CopyAssignNonTriviallyCopyableToLarger(benchmark::State& state)
 {
-    std::string astring = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    std::string bstring = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    std::string astring(27, 'a');    // NOTE: No SSO
+    std::string bstring(32, 'b'); // NOTE: No SSO
     int N = (int)state.range(0);
     for (auto _ : state) {
         state.PauseTiming();
@@ -113,8 +112,13 @@ static void BM_CopyAssignNonTriviallyCopyableToLarger(benchmark::State& state)
         benchmark::DoNotOptimize(dst = src);
     }
 }
-BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, PltStrVec)
+BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToLarger, PltStrVec)
 COPY_ASSIGN_ARGS;
-BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, StlStrVec)
+BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToLarger, StlStrVec)
 COPY_ASSIGN_ARGS;
 #endif
+
+//
+// ----------------------------------------------------------------------------
+//
+BENCHMARK_MAIN();

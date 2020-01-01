@@ -259,16 +259,7 @@ private:
             for (int i = size; i < oldsize; ++i) {
                 dst[i].~T();
             }
-        } // else {
-            // static_assert(false, "can't maintain strong exception guarantee");
-            // // can't maintain strong exception guarantee AND reuse the memory
-            // // we already have.
-            // // TODO: use malloc instead?
-            // T* tmp = static_cast<T*>(calloc(sizeof(T), size));
-            // _copy_data(tmp, src, size);
-            // _free_data(dst, oldsize);
-            // dst = tmp;
-        // }
+        }
         // clang-format on
     }
 
