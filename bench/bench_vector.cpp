@@ -10,6 +10,7 @@
 // #define COPY_ASSIGN_TRIVIAL_TO_LARGER
 // #define COPY_ASSIGN_TRIVIAL_TO_SMALLER
 #define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
+#define COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
 
 // append
 // pop
@@ -95,19 +96,20 @@ COPY_ASSIGN_ARGS;
 
 #ifdef COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
 //
-// Copy Assign non-trivial type from larger vector to smaller vector. Can
+// Copy Assign non-trivial type from smaller vector to larger vector. Can
 // elide the memory allocation for destination vector.
 //
 template <class Cont>
 static void BM_CopyAssignNonTriviallyCopyableToLarger(benchmark::State& state)
 {
-    std::string astring(27, 'a');    // NOTE: No SSO
+    std::string astring(27, 'a'); // NOTE: No SSO
     std::string bstring(32, 'b'); // NOTE: No SSO
     int N = (int)state.range(0);
     for (auto _ : state) {
         state.PauseTiming();
         Cont src(N / 2, astring);
         Cont dst(N    , bstring);
+        assert(src.size() < dst.size());
         state.ResumeTiming();
         benchmark::DoNotOptimize(dst = src);
     }
@@ -118,6 +120,31 @@ BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToLarger, StlStrVec)
 COPY_ASSIGN_ARGS;
 #endif
 
+#ifdef COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
+//
+// Copy Assign non-trivial type from larger vector to smaller vector. Can
+// elide the memory allocation for destination vector.
+//
+template <class Cont>
+static void BM_CopyAssignNonTriviallyCopyableToSmaller(benchmark::State& state)
+{
+    std::string astring(27, 'a'); // NOTE: No SSO
+    std::string bstring(32, 'b'); // NOTE: No SSO
+    int N = (int)state.range(0);
+    for (auto _ : state) {
+        state.PauseTiming();
+        Cont src(N    , astring);
+        Cont dst(N / 2, bstring);
+        assert(src.size() < dst.size());
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(dst = src);
+    }
+}
+BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, PltStrVec)
+COPY_ASSIGN_ARGS;
+BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, StlStrVec)
+COPY_ASSIGN_ARGS;
+#endif
 //
 // ----------------------------------------------------------------------------
 //
