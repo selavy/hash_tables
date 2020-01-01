@@ -4,6 +4,12 @@
 #include <pltables++/vector.h>
 #include <random>
 #include <vector>
+#include <string>
+
+
+// #define COPY_ASSIGN_TRIVIAL_TO_LARGER
+#define COPY_ASSIGN_TRIVIAL_TO_SMALLER
+// #define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
 
 // append
 // pop
@@ -38,7 +44,10 @@
 
 using PltIntVec = plt::Vector<int>;
 using StlIntVec = std::vector<int>;
+using PltStrVec = plt::Vector<std::string>;
+using StlStrVec = std::vector<std::string>;
 
+#ifdef COPY_ASSIGN_TRIVIAL_TO_LARGER
 //
 // Copy Assign smaller vector to larger vector. Possible to elide memory
 // allocation for destination vector.
@@ -50,7 +59,7 @@ static void BM_CopyAssignTriviallyCopyableToLarger(benchmark::State& state)
     for (auto _ : state) {
         state.PauseTiming();
         Cont src(N / 2, 42);
-        Cont dst(N, 55);
+        Cont dst(N    , 55);
         state.ResumeTiming();
         benchmark::DoNotOptimize(dst = src);
     }
@@ -59,7 +68,9 @@ BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, PltIntVec)
 COPY_ASSIGN_ARGS;
 BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, StlIntVec)
 COPY_ASSIGN_ARGS;
+#endif
 
+#ifdef COPY_ASSIGN_TRIVIAL_TO_SMALLER
 //
 // Copy Assign larger vector to smaller vector. Not possible to elide
 // memory allocation for destination vector.
@@ -81,3 +92,29 @@ COPY_ASSIGN_ARGS;
 BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToSmaller, StlIntVec)
 COPY_ASSIGN_ARGS;
 BENCHMARK_MAIN();
+#endif
+
+#ifdef COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
+//
+// Copy Assign non-trivial type from larger vector to smaller vector. Can
+// elide the memory allocation for destination vector.
+//
+template <class Cont>
+static void BM_CopyAssignNonTriviallyCopyableToLarger(benchmark::State& state)
+{
+    std::string astring = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    std::string bstring = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    int N = (int)state.range(0);
+    for (auto _ : state) {
+        state.PauseTiming();
+        Cont src(N / 2, astring);
+        Cont dst(N    , bstring);
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(dst = src);
+    }
+}
+BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, PltStrVec)
+COPY_ASSIGN_ARGS;
+BENCHMARK_TEMPLATE(BM_CopyAssignTriviallyCopyableToLarger, StlStrVec)
+COPY_ASSIGN_ARGS;
+#endif

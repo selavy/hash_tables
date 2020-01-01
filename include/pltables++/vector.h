@@ -35,6 +35,7 @@ public:
 
     Vector(int size, T elem = T()) noexcept : _size{ size }, _asize{ size }
     {
+        // TODO: use malloc instead?
         _data = static_cast<T*>(calloc(sizeof(T), _asize));
         for (int i = 0; i < _size; ++i) {
             new (&_data[i]) T{ elem };
@@ -44,6 +45,7 @@ public:
     Vector(const Vector& other) noexcept : _size{ other._size },
                                            _asize{ other._asize }
     {
+        // TODO: use malloc instead?
         _data = static_cast<T*>(calloc(sizeof(T), _asize));
         _copy_data(_data, other._data, other._size);
     }
@@ -59,17 +61,25 @@ public:
     Vector& operator=(const Vector& other) noexcept
     {
         if (__builtin_likely(this != &other)) {
-            if (other._size <= _asize) {
+            // clang-format off
+            if (
+                (std::is_trivially_copyable_v<T> || std::is_nothrow_copy_assignable_v<T>) &&
+                (other._size <= _asize)
+            ) {
                 // already have enough room, try to use it
-                _copy_assign(_data, other._data, other._size, _size);
+                _copy_assign_nothrow(_data, other._data, other._size, _size);
+                _size = other._size;
             } else {
-                T* tmp = static_cast<T*>(calloc(sizeof(T), other._asize));
+                // TODO: copy the other vector's asize as well, could just do
+                // size
+                // TODO: use malloc instead?
+                T* tmp = static_cast<T*>(calloc(sizeof(T), other._size));
                 _copy_data(tmp, other._data, other._size);
                 _free_data(_data, _size);
                 _data = tmp;
-                _asize = other._asize;
+                _size = _asize = other._size;
             }
-            _size = other._size;
+            // clang-format on
         }
         return *this;
     }
@@ -141,6 +151,7 @@ private:
             // TODO:  does this need IsTriviallyDestructible as well?
             _data = static_cast<T*>(realloc(_data, sizeof(T) * newasize));
         } else {
+            // TODO: use malloc instead?
             T* tmp = static_cast<T*>(calloc(sizeof(T), newasize));
             _data = _move_data_not_trivial(tmp, _data, _size);
         }
@@ -206,6 +217,7 @@ private:
     {
         assert(src != nullptr || size == 0);
         assert(dst != nullptr || size == 0);
+        assert(std::abs(dst - src) > size);
         // clang-format off
         if constexpr (std::is_trivially_copyable_v<T>) {
             memcpy(dst, src, sizeof(T) * size);
@@ -216,45 +228,47 @@ private:
         } else {
             int i;
             try {
-                for (i = 0; i < size; ++i) {
+                for (i = 0; i < size; ++i)
                     new (&dst[i]) T(src[i]);
-                }
             } catch (...) {
-                for (; i >= 0; --i) {
+                for (; i >= 0; --i)
                     dst[i].~T();
-                }
                 throw;
             }
         }
         // clang-format on
     }
 
-    static void _copy_assign(
-      T* restrict dst, const T* restrict src, const int size,
-      int oldsize) noexcept(std::is_trivially_copyable_v<T> ||
-                            std::is_nothrow_copy_assignable_v<T>)
+    static void _copy_assign_nothrow(T* restrict dst, const T* restrict src,
+                             const int size, int oldsize) noexcept
     {
         assert(src != nullptr || size == 0);
         assert(dst != nullptr || size == 0);
+        assert(size <= oldsize);
         // clang-format off
         if constexpr (std::is_trivially_copyable_v<T>) {
             memcpy(dst, src, sizeof(T) * size);
         } else if constexpr (std::is_nothrow_copy_assignable_v<T>) {
-            const T* endp = dst + size;
-            while (dst != endp) {
-                *dst++ = *src++;
-            }
-            // for (int i = 0; i < size; ++i) {
-            //     dst[i] = src[i];
+            // const T* endp = dst + size;
+            // while (dst != endp) {
+            //     *dst++ = *src++;
             // }
-        } else {
-            // can't maintain strong exception guarantee AND reuse the memory
-            // we already have.
-            T* tmp = static_cast<T*>(calloc(sizeof(T), size));
-            _copy_data(tmp, src, size);
-            _free_data(dst, oldsize);
-            dst = tmp;
-        }
+            for (int i = 0; i < size; ++i) {
+                dst[i] = src[i];
+            }
+            for (int i = size; i < oldsize; ++i) {
+                dst[i].~T();
+            }
+        } // else {
+            // static_assert(false, "can't maintain strong exception guarantee");
+            // // can't maintain strong exception guarantee AND reuse the memory
+            // // we already have.
+            // // TODO: use malloc instead?
+            // T* tmp = static_cast<T*>(calloc(sizeof(T), size));
+            // _copy_data(tmp, src, size);
+            // _free_data(dst, oldsize);
+            // dst = tmp;
+        // }
         // clang-format on
     }
 

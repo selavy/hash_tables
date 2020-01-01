@@ -2,6 +2,7 @@
 #include <pltables++/vector.h>
 #include <stdexcept>
 #include <vector>
+#include <string>
 
 using namespace plt;
 
@@ -276,6 +277,52 @@ TEST_CASE("Vector non-trivial types")
             REQUIRE(vec.size() == i);
             vec.append(i);
             REQUIRE(*vec[i] == i);
+        }
+    }
+
+    SECTION("copy assign std::string larger to smaller")
+    {
+        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa"); // No SSO
+        std::string bstr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"); // No SSO
+        int N1 = 99;
+        int N2 = 42;
+        Vector<std::string> src(N1, astr);
+        Vector<std::string> dst(N2, bstr);
+        REQUIRE(src.size() == N1);
+        REQUIRE(dst.size() == N2);
+        REQUIRE(src[0]              == astr);
+        REQUIRE(src[src.size() - 1] == astr);
+        REQUIRE(dst[0]              == bstr);
+        REQUIRE(dst[dst.size() - 1] == bstr);
+
+        dst = src;
+        REQUIRE(src.size() == dst.size());
+        REQUIRE(dst.size() == N1);
+        for (int i = 0; i < src.size(); ++i) {
+            REQUIRE(dst[i] == src[i]);
+        }
+    }
+
+    SECTION("copy assign std::string smaller to larger")
+    {
+        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa"); // No SSO
+        std::string bstr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"); // No SSO
+        int N1 = 42;
+        int N2 = 99;
+        Vector<std::string> src(N1, astr);
+        Vector<std::string> dst(N2, bstr);
+        REQUIRE(src.size() == N1);
+        REQUIRE(dst.size() == N2);
+        REQUIRE(src[0]              == astr);
+        REQUIRE(src[src.size() - 1] == astr);
+        REQUIRE(dst[0]              == bstr);
+        REQUIRE(dst[dst.size() - 1] == bstr);
+
+        dst = src;
+        REQUIRE(src.size() == dst.size());
+        REQUIRE(dst.size() == N1);
+        for (int i = 0; i < src.size(); ++i) {
+            REQUIRE(dst[i] == src[i]);
         }
     }
 }
