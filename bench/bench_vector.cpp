@@ -6,11 +6,7 @@
 #include <vector>
 #include <string>
 
-
-// #define COPY_ASSIGN_TRIVIAL_TO_LARGER
-// #define COPY_ASSIGN_TRIVIAL_TO_SMALLER
-#define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
-#define COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
+#define COPY_ASSIGN_BENCHMARKS
 
 // append
 // pop
@@ -31,6 +27,23 @@
 
 #define myassert(cond) _assert_helper(cond, __LINE__)
 
+using PltIntVec = plt::Vector<int>;
+using StlIntVec = std::vector<int>;
+using PltStrVec = plt::Vector<std::string>;
+using StlStrVec = std::vector<std::string>;
+
+#ifdef COPY_ASSIGN_BENCHMARKS
+//---------------------------------------------------------------------------//
+//
+// Copy Assignment Benchmarks
+//
+//---------------------------------------------------------------------------//
+
+// #define COPY_ASSIGN_TRIVIAL_TO_LARGER
+// #define COPY_ASSIGN_TRIVIAL_TO_SMALLER
+#define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
+#define COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
+
 #define COPY_ASSIGN_ARGS                                                       \
     ->Arg(1 << 5)                                                              \
       ->Arg(1 << 7)                                                            \
@@ -42,11 +55,6 @@
 //       ->Arg(1 << 18)                                                           \
 //       ->Arg(1 << 20)                                                           \
 //       ->Arg(1 << 21)
-
-using PltIntVec = plt::Vector<int>;
-using StlIntVec = std::vector<int>;
-using PltStrVec = plt::Vector<std::string>;
-using StlStrVec = std::vector<std::string>;
 
 #ifdef COPY_ASSIGN_TRIVIAL_TO_LARGER
 //
@@ -145,6 +153,9 @@ COPY_ASSIGN_ARGS;
 BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, StlStrVec)
 COPY_ASSIGN_ARGS;
 #endif
+
+#endif // COPY_ASSIGN_BENCHMARKS
+
 //
 // ----------------------------------------------------------------------------
 //
