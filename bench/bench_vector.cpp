@@ -6,8 +6,8 @@
 #include <vector>
 #include <string>
 
-#define COPY_ASSIGN_BENCHMARKS
 
+#define COPY_BENCHMARKS
 // append
 // pop
 // copy
@@ -32,10 +32,10 @@ using StlIntVec = std::vector<int>;
 using PltStrVec = plt::Vector<std::string>;
 using StlStrVec = std::vector<std::string>;
 
-#ifdef COPY_ASSIGN_BENCHMARKS
+#ifdef COPY_BENCHMARKS
 //---------------------------------------------------------------------------//
 //
-// Copy Assignment Benchmarks
+// Copy Benchmarks
 //
 //---------------------------------------------------------------------------//
 
@@ -154,7 +154,7 @@ BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, StlStrVec)
 COPY_ASSIGN_ARGS;
 #endif
 
-#endif // COPY_ASSIGN_BENCHMARKS
+#endif // COPY_BENCHMARKS
 
 //
 // ----------------------------------------------------------------------------
