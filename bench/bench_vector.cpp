@@ -6,12 +6,9 @@
 #include <string>
 #include <vector>
 
-#define APPEND_BENCHMARKS
+// #define APPEND_BENCHMARKS
 // #define COPY_BENCHMARKS
-// append
-// pop
-// copy
-// erase
+#define ERASE_BENCHMARKS
 
 #define _mkstr(x) #x
 
@@ -148,7 +145,8 @@ COPY_ASSIGN_ARGS;
 //         memcpy(&dst[0], &src[0], sizeof(std::string) * N);
 //     }
 // }
-// BENCHMARK(BM_CopyAssignNonTriviallyCopyableToSmaller_Baseline) COPY_ASSIGN_ARGS;
+// BENCHMARK(BM_CopyAssignNonTriviallyCopyableToSmaller_Baseline)
+// COPY_ASSIGN_ARGS;
 
 template <class Cont>
 static void BM_CopyAssignNonTriviallyCopyableToSmaller(benchmark::State& state)
@@ -207,6 +205,47 @@ BENCHMARK_TEMPLATE(BM_AppendTrivial, StlIntVec) APPEND_ARGS;
 #endif // APPEND_TRIVIAL
 
 #endif // APPEND_BENCHMARKS
+
+#ifdef ERASE_BENCHMARKS
+//----------------------------------------------------------------------------//
+//
+// Erase Benchmarks
+//
+//----------------------------------------------------------------------------//
+
+#define ERASE_ARGS ->Arg(128)->Arg(256)->Arg(1024)->Arg(2048)->Arg(4096)->Arg(1<<16)
+template <class Cont>
+static void BM_EraseTrivial(benchmark::State& state)
+{
+    size_t ii = 0;
+    for (auto _ : state) {
+        state.PauseTiming();
+        Cont vec(state.range(0), 42);
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(vec.erase(vec.begin() + 1, vec.end() - 1));
+        ii += vec.size();
+    }
+    if (ii == 0) {
+        throw std::runtime_error{"failed"};
+    }
+}
+BENCHMARK_TEMPLATE(BM_EraseTrivial, PltIntVec) ERASE_ARGS;
+BENCHMARK_TEMPLATE(BM_EraseTrivial, StlIntVec) ERASE_ARGS;
+
+template <class Cont>
+static void BM_EraseNoThrowMove(benchmark::State& state)
+{
+    for (auto _ : state) {
+        state.PauseTiming();
+        Cont vec(state.range(0), "Hello World");
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(vec.erase(vec.begin() + 1, vec.end() - 1));
+    }
+}
+BENCHMARK_TEMPLATE(BM_EraseNoThrowMove, PltStrVec) ERASE_ARGS;
+BENCHMARK_TEMPLATE(BM_EraseNoThrowMove, StlStrVec) ERASE_ARGS;
+
+#endif // ERASE_BENCHMARKS
 
 //
 // -----------------------------------------------------------------------------

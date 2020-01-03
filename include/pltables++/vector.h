@@ -108,12 +108,18 @@ public:
 
     ~Vector() noexcept { clear(); }
 
-    // TODO: set noexcept specifier
     template <class... Args>
     void append(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
     {
         if (_size == _asize)
             _grow(1.5 * _asize + 4);
+        new (&_data[_size++]) T(std::forward<Args>(args)...);
+    }
+
+    template <class... Args>
+    void append_unsafe(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
+    {
+        assert(_size < _asize);
         new (&_data[_size++]) T(std::forward<Args>(args)...);
     }
 
