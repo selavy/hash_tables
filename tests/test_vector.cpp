@@ -1,8 +1,9 @@
 #include <catch2/catch.hpp>
+#include <initializer_list>
 #include <pltables++/vector.h>
 #include <stdexcept>
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace plt;
 
@@ -282,7 +283,7 @@ TEST_CASE("Vector non-trivial types")
 
     SECTION("copy assign std::string larger to smaller")
     {
-        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa"); // No SSO
+        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa");     // No SSO
         std::string bstr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"); // No SSO
         int N1 = 99;
         int N2 = 42;
@@ -290,9 +291,9 @@ TEST_CASE("Vector non-trivial types")
         Vector<std::string> dst(N2, bstr);
         REQUIRE(src.size() == N1);
         REQUIRE(dst.size() == N2);
-        REQUIRE(src[0]              == astr);
+        REQUIRE(src[0] == astr);
         REQUIRE(src[src.size() - 1] == astr);
-        REQUIRE(dst[0]              == bstr);
+        REQUIRE(dst[0] == bstr);
         REQUIRE(dst[dst.size() - 1] == bstr);
 
         dst = src;
@@ -305,7 +306,7 @@ TEST_CASE("Vector non-trivial types")
 
     SECTION("copy assign std::string smaller to larger")
     {
-        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa"); // No SSO
+        std::string astr("aaaaaaaaaaaaaaaaaaaaaaaaaaa");     // No SSO
         std::string bstr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"); // No SSO
         int N1 = 42;
         int N2 = 99;
@@ -313,9 +314,9 @@ TEST_CASE("Vector non-trivial types")
         Vector<std::string> dst(N2, bstr);
         REQUIRE(src.size() == N1);
         REQUIRE(dst.size() == N2);
-        REQUIRE(src[0]              == astr);
+        REQUIRE(src[0] == astr);
         REQUIRE(src[src.size() - 1] == astr);
-        REQUIRE(dst[0]              == bstr);
+        REQUIRE(dst[0] == bstr);
         REQUIRE(dst[dst.size() - 1] == bstr);
 
         dst = src;
@@ -324,5 +325,122 @@ TEST_CASE("Vector non-trivial types")
         for (int i = 0; i < src.size(); ++i) {
             REQUIRE(dst[i] == src[i]);
         }
+    }
+}
+
+TEST_CASE("Erase")
+{
+    SECTION("Erase single trivial")
+    {
+        Vector<int> vec;
+        for (int i = 0; i < 10; ++i) {
+            vec.push_back(i);
+        }
+        REQUIRE(vec.size() == 10);
+
+        // remove 5
+        Vector<int>::iterator iter = vec.erase(vec.begin() + 5);
+        REQUIRE(vec.size() == 9);
+        REQUIRE(*iter == 6);
+        REQUIRE(vec[5] == 6);
+
+        // remove 9
+        iter = vec.erase(vec.end() - 1);
+        REQUIRE(vec.size() == 8);
+        REQUIRE(iter == vec.end());
+
+        // remove 0
+        iter = vec.erase(vec.begin());
+        REQUIRE(vec.size() == 7);
+        REQUIRE(*iter == 1);
+
+        std::vector<int> expect = { 1, 2, 3, 4, 6, 7, 8 };
+        REQUIRE(vec.size() == expect.size());
+        for (int i = 0; i < vec.size(); ++i) {
+            REQUIRE(vec[i] == expect[i]);
+        }
+    }
+
+    SECTION("Erase single non-trivial")
+    {
+        Vector<std::string> vec;
+        for (int i = 0; i < 10; ++i) {
+            vec.push_back(std::to_string(i));
+        }
+        REQUIRE(vec.size() == 10);
+
+        // remove 5
+        Vector<std::string>::iterator iter = vec.erase(vec.begin() + 5);
+        REQUIRE(vec.size() == 9);
+        REQUIRE(*iter == "6");
+        REQUIRE(vec[5] == "6");
+
+        // remove 9
+        iter = vec.erase(vec.end() - 1);
+        REQUIRE(vec.size() == 8);
+        REQUIRE(iter == vec.end());
+
+        // remove 0
+        iter = vec.erase(vec.begin());
+        REQUIRE(vec.size() == 7);
+        REQUIRE(*iter == "1");
+
+        std::vector<std::string> expect = { "1", "2", "3", "4", "6", "7", "8" };
+        REQUIRE(vec.size() == expect.size());
+        for (int i = 0; i < vec.size(); ++i) {
+            REQUIRE(vec[i] == expect[i]);
+        }
+    }
+
+    SECTION("std::vector erase range")
+    {
+        std::vector<int> vs = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        auto iter = vs.erase(vs.begin() + 2, vs.begin() + 7);
+        REQUIRE(vs[0] == 0);
+        REQUIRE(vs[1] == 1);
+        REQUIRE(vs[2] == 7);
+        REQUIRE(vs[3] == 8);
+        REQUIRE(vs[4] == 9);
+        REQUIRE(*iter == 7);
+    }
+
+    SECTION("erase range trivial")
+    {
+        static_assert(std::is_trivial_v<int>);
+        auto vec = Vector<int>::make({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+        REQUIRE(vec.size() == 10);
+
+        // expect { 0, 1, 7, 8, 9 }
+        Vector<int>::iterator iter =
+          vec.erase(vec.begin() + 2, vec.begin() + 7);
+        REQUIRE(vec.size() == 5);
+        REQUIRE(vec[0] == 0);
+        REQUIRE(vec[1] == 1);
+        REQUIRE(vec[2] == 7);
+        REQUIRE(vec[3] == 8);
+        REQUIRE(vec[4] == 9);
+        REQUIRE(*iter == 7);
+    }
+
+    SECTION("erase range is_nothrow_move_assignable")
+    {
+        static_assert(std::is_nothrow_move_assignable_v<std::string>);
+        Vector<std::string> vec;
+        for (int i = 0; i < 10; ++i) {
+            vec.append(std::to_string(i));
+        }
+
+        // start  { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+        // expect { 0, 1, 7, 8, 9 }
+        Vector<std::string>::iterator iter =
+          vec.erase(vec.begin() + 2, vec.begin() + 7);
+        REQUIRE(vec.size() == 5);
+        REQUIRE(vec[0] == "0");
+        REQUIRE(vec[1] == "1");
+        REQUIRE(vec[2] == "7");
+        REQUIRE(vec[3] == "8");
+        REQUIRE(vec[4] == "9");
+        printf("%zu\n", (&*iter - &*vec.begin()));
+        REQUIRE(*iter == "7");
     }
 }

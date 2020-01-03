@@ -31,6 +31,14 @@ public:
     using iterator = Iterator;
     using const_iterator = ConstIterator;
 
+    static Vector<T> make(std::initializer_list<T> ll)
+    {
+        Vector<T> vec;
+        for (auto&& e : ll)
+            vec.push_back(e);
+        return vec;
+    }
+
     constexpr Vector() noexcept = default;
 
     Vector(int size, T elem = T()) noexcept : _size{ size }, _asize{ size }
@@ -101,17 +109,84 @@ public:
     ~Vector() noexcept { clear(); }
 
     // TODO: set noexcept specifier
-    void append(const T& x)
+    template <class... Args>
+    void append(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
     {
         if (_size == _asize)
             _grow(1.5 * _asize + 4);
-        new (&_data[_size++]) T{ x };
+        new (&_data[_size++]) T(std::forward<Args>(args)...);
+    }
+
+    void push_back(const T& x) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    {
+        append(x);
+    }
+
+    template <class... Args>
+    void emplace_back(Args&&... args) noexcept(
+      std::is_nothrow_constructible_v<T>)
+    {
+        append(args...);
     }
 
     void pop() noexcept
     {
         assert(!is_empty());
         _data[--_size].~T();
+    }
+
+    iterator erase(const_iterator pos) noexcept(
+      std::is_nothrow_copy_assignable_v<T> ||
+      std::is_nothrow_move_assignable_v<T>)
+    {
+        // XXX: maybe not worth the code size to specialize? just use erase(pos, pos+1)?
+        T* p1 = const_cast<T*>(pos._ptr);
+        T* p2 = p1 + 1;
+        T* end = _data + _size;
+        p1->~T();
+        // clang-format off
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memmove(p1, p2, (end - p2) * sizeof(T));
+        } else if constexpr (std::is_nothrow_move_assignable_v<T>) {
+            while (p2 != end) {
+                *(p2 - 1) = std::move(*p2);
+                ++p2;
+            }
+        } else {
+            // TODO: what happens if copy assignment throws?
+            std::copy(p2, end, p1);
+        }
+        // clang-format on
+        --_size;
+        return iterator(p1);
+    }
+
+    iterator erase(const_iterator first, const_iterator last) noexcept(
+      std::is_nothrow_copy_assignable_v<T> ||
+      std::is_nothrow_move_assignable_v<T>)
+    {
+        T* p1 = const_cast<T*>(first._ptr);
+        T* p2 = const_cast<T*>(last._ptr);
+        T* p3 = _data + _size;
+        _size -= (p2 - p1);
+        for (T* p = p1; p != p2; ++p) {
+            p->~T();
+        }
+        // clang-format off
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            memmove(p1, p2, (p3 - p2) * sizeof(T));
+        } else if constexpr (std::is_nothrow_move_assignable_v<T>) {
+            T* dst = p1;
+            T* src = p2;
+            T* end = p3;
+            while (src != end) {
+                *dst++ = std::move(*src++);
+            }
+        } else {
+            std::copy(p2, p3, p1);
+        }
+        // clang-format on
+        return { p1 };
     }
 
     void clear() noexcept
@@ -126,16 +201,10 @@ public:
     constexpr bool is_empty() const noexcept { return _size == 0; }
     constexpr int size() const noexcept { return _size; }
     constexpr int capacity() const noexcept { return _asize; }
-    constexpr iterator begin() noexcept { return iterator(_data); }
-    constexpr iterator end() noexcept { return iterator(_data + _size); }
-    constexpr const_iterator cbegin() const noexcept
-    {
-        return const_iterator(_data);
-    }
-    constexpr const_iterator cend() const noexcept
-    {
-        return const_iterator(_data + _size);
-    }
+    constexpr iterator begin() noexcept { return { _data }; }
+    constexpr iterator end() noexcept { return { _data + _size }; }
+    constexpr const_iterator cbegin() const noexcept { return { _data }; }
+    constexpr const_iterator cend() const noexcept { return { _data + _size }; }
     constexpr const_iterator begin() const noexcept { return cbegin(); }
     constexpr const_iterator end() const noexcept { return cend(); }
 
@@ -240,7 +309,7 @@ private:
     }
 
     static void _copy_assign_nothrow(T* restrict dst, const T* restrict src,
-                             const int size, int oldsize) noexcept
+                                     const int size, int oldsize) noexcept
     {
         assert(src != nullptr || size == 0);
         assert(dst != nullptr || size == 0);
@@ -276,7 +345,7 @@ class Vector<T>::Iterator
     friend class Vector<T>::ConstIterator;
 
 public:
-    constexpr explicit Iterator(T* ptr = nullptr) noexcept : _ptr(ptr) {}
+    constexpr Iterator(T* ptr = nullptr) noexcept : _ptr(ptr) {}
     constexpr Iterator(const Iterator& other) noexcept : _ptr(other._ptr) {}
     constexpr Iterator(Iterator&& other) noexcept : _ptr(other._ptr)
     {
@@ -353,12 +422,10 @@ template <class T>
 class Vector<T>::ConstIterator
 {
     const T* _ptr = nullptr;
+    friend class Vector<T>;
 
 public:
-    constexpr explicit ConstIterator(const T* ptr = nullptr) noexcept
-      : _ptr(ptr)
-    {
-    }
+    constexpr ConstIterator(const T* ptr = nullptr) noexcept : _ptr(ptr) {}
     constexpr ConstIterator(Iterator itr) noexcept : _ptr(itr._ptr) {}
     constexpr ConstIterator(const ConstIterator& other) noexcept
       : _ptr(other._ptr)

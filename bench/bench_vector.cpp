@@ -3,11 +3,11 @@
 #include <iostream>
 #include <pltables++/vector.h>
 #include <random>
-#include <vector>
 #include <string>
+#include <vector>
 
-
-#define COPY_BENCHMARKS
+#define APPEND_BENCHMARKS
+// #define COPY_BENCHMARKS
 // append
 // pop
 // copy
@@ -33,28 +33,30 @@ using PltStrVec = plt::Vector<std::string>;
 using StlStrVec = std::vector<std::string>;
 
 #ifdef COPY_BENCHMARKS
-//---------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 //
 // Copy Benchmarks
 //
-//---------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 
 // #define COPY_ASSIGN_TRIVIAL_TO_LARGER
 // #define COPY_ASSIGN_TRIVIAL_TO_SMALLER
 #define COPY_ASSIGN_NON_TRIVIAL_TO_LARGER
 #define COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
 
+// clang-format off
 #define COPY_ASSIGN_ARGS                                                       \
     ->Arg(1 << 5)                                                              \
-      ->Arg(1 << 7)                                                            \
-      ->Arg(1 << 9)                                                            \
-      ->Arg(1 << 10)                                                           \
-//       ->Arg(1 << 12)                                                           \
+    ->Arg(1 << 7)                                                              \
+    ->Arg(1 << 9)                                                              \
+    ->Arg(1 << 10)                                                             \
+    ->Arg(1 << 12)                                                             \
 //       ->Arg(1 << 14)                                                           \
 //       ->Arg(1 << 16)                                                           \
 //       ->Arg(1 << 18)                                                           \
 //       ->Arg(1 << 20)                                                           \
 //       ->Arg(1 << 21)
+// clang-format on
 
 #ifdef COPY_ASSIGN_TRIVIAL_TO_LARGER
 //
@@ -68,7 +70,7 @@ static void BM_CopyAssignTriviallyCopyableToLarger(benchmark::State& state)
     for (auto _ : state) {
         state.PauseTiming();
         Cont src(N / 2, 42);
-        Cont dst(N    , 55);
+        Cont dst(N, 55);
         state.ResumeTiming();
         benchmark::DoNotOptimize(dst = src);
     }
@@ -90,7 +92,7 @@ static void BM_CopyAssignTriviallyCopyableToSmaller(benchmark::State& state)
     int N = (int)state.range(0);
     for (auto _ : state) {
         state.PauseTiming();
-        Cont src(N    , 42);
+        Cont src(N, 42);
         Cont dst(N / 2, 55);
         state.ResumeTiming();
         benchmark::DoNotOptimize(dst = src);
@@ -116,7 +118,7 @@ static void BM_CopyAssignNonTriviallyCopyableToLarger(benchmark::State& state)
     for (auto _ : state) {
         state.PauseTiming();
         Cont src(N / 2, astring);
-        Cont dst(N    , bstring);
+        Cont dst(N, bstring);
         assert(src.size() < dst.size());
         state.ResumeTiming();
         benchmark::DoNotOptimize(dst = src);
@@ -133,6 +135,21 @@ COPY_ASSIGN_ARGS;
 // Copy Assign non-trivial type from larger vector to smaller vector. Can
 // elide the memory allocation for destination vector.
 //
+
+// TODO: not sure this is actually a great baseline
+// static void BM_CopyAssignNonTriviallyCopyableToSmaller_Baseline(
+//   benchmark::State& state)
+// {
+//     int N = (int)state.range(0);
+//     std::vector<char> src(N * sizeof(std::string), '4');
+//     std::vector<char> dst(N * sizeof(std::string), ' ');
+//     for (auto _ : state) {
+//         // benchmark::DoNotOptimize(dst = src);
+//         memcpy(&dst[0], &src[0], sizeof(std::string) * N);
+//     }
+// }
+// BENCHMARK(BM_CopyAssignNonTriviallyCopyableToSmaller_Baseline) COPY_ASSIGN_ARGS;
+
 template <class Cont>
 static void BM_CopyAssignNonTriviallyCopyableToSmaller(benchmark::State& state)
 {
@@ -141,7 +158,7 @@ static void BM_CopyAssignNonTriviallyCopyableToSmaller(benchmark::State& state)
     int N = (int)state.range(0);
     for (auto _ : state) {
         state.PauseTiming();
-        Cont src(N    , astring);
+        Cont src(N, astring);
         Cont dst(N / 2, bstring);
         assert(src.size() < dst.size());
         state.ResumeTiming();
@@ -152,11 +169,46 @@ BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, PltStrVec)
 COPY_ASSIGN_ARGS;
 BENCHMARK_TEMPLATE(BM_CopyAssignNonTriviallyCopyableToSmaller, StlStrVec)
 COPY_ASSIGN_ARGS;
-#endif
+
+#endif // COPY_ASSIGN_NON_TRIVIAL_TO_SMALLER
 
 #endif // COPY_BENCHMARKS
 
+#ifdef APPEND_BENCHMARKS
+//----------------------------------------------------------------------------//
 //
-// ----------------------------------------------------------------------------
+// Append Benchmarks
+//
+//----------------------------------------------------------------------------//
+
+#define APPEND_TRIVIAL
+
+// clang-format off
+#define APPEND_ARGS                                                            \
+    ->Args({ 128, 128 })                                                       \
+    ->Args({ 128, 256 })
+// clang-format on
+
+#ifdef APPEND_TRIVIAL
+template <class Cont>
+static void BM_AppendTrivial(benchmark::State& state)
+{
+    for (auto _ : state) {
+        state.PauseTiming();
+        Cont vec(42, state.range(0));
+        state.ResumeTiming();
+        for (int i = 0; i < state.range(1); ++i) {
+            vec.push_back(i);
+        }
+    }
+}
+BENCHMARK_TEMPLATE(BM_AppendTrivial, PltIntVec) APPEND_ARGS;
+BENCHMARK_TEMPLATE(BM_AppendTrivial, StlIntVec) APPEND_ARGS;
+#endif // APPEND_TRIVIAL
+
+#endif // APPEND_BENCHMARKS
+
+//
+// -----------------------------------------------------------------------------
 //
 BENCHMARK_MAIN();
