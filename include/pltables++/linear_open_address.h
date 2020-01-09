@@ -12,12 +12,17 @@ template <class Key, class T, class Hash = std::hash<Key>,
           class KeyEq = std::equal_to<Key>>
 class loatable : private Hash, private KeyEq
 {
-    static_assert(std::is_trivial_v<Key>, "Key type must be trivial");
-    static_assert(std::is_trivial_v<T>, "Mapped type must be trivial");
-    static_assert(std::is_trivially_copyable_v<Key>,
-                  "Key type must satisfy TriviallyCopyable");
-    static_assert(std::is_trivially_copyable_v<T>,
-                  "Mapped type must satisfy TriviallyCopyable");
+    // require NoThrowConstructible as well?
+    static_assert(std::is_nothrow_move_constructible_v<Key>);
+    static_assert(std::is_nothrow_move_constructible_v<T>);
+    static_assert(std::is_nothrow_move_assignable_v<Key>);
+    static_assert(std::is_nothrow_move_assignable_v<T>);
+    // static_assert(std::is_trivial_v<Key>, "Key type must be trivial");
+    // static_assert(std::is_trivial_v<T>, "Mapped type must be trivial");
+    // static_assert(std::is_trivially_copyable_v<Key>,
+    //               "Key type must satisfy TriviallyCopyable");
+    // static_assert(std::is_trivially_copyable_v<T>,
+    //               "Mapped type must satisfy TriviallyCopyable");
     constexpr static double MaxLoadFactor = 0.77;
     constexpr static size_t MinTableSize = 8;
 
@@ -41,17 +46,30 @@ public:
     using key_equal = KeyEq;
 
     constexpr loatable() noexcept = default;
-    ~loatable() noexcept
+    ~loatable() noexcept { clear(); }
+    void clear() noexcept
     {
+        // clang-format off
+        // TODO: probably don't need this guard, verify gets optimized out anyways
+        if constexpr (
+                !std::is_trivially_destructible_v<Key> ||
+                !std::is_trivially_destructible_v<T>
+        ) {
+            for (int i = 0; i < _asize; ++i) {
+                if (_is_alive(_flags, i)) {
+                    _keys[i].~Key();
+                    _vals[i].~T();
+                }
+            }
+        }
+        // clang-format on
         free(_flags);
         free(_keys);
         free(_vals);
-#ifndef NDEBUG
         _flags = nullptr;
         _keys = nullptr;
         _vals = nullptr;
-        _asize = _size = _cutoff = 0;
-#endif
+        _asize = _size = _used = _cutoff = 0;
     }
     constexpr size_t capacity() const noexcept { return _asize; }
     constexpr size_t size() const noexcept { return _size; }
@@ -110,8 +128,10 @@ public:
     constexpr const_iterator end() const noexcept { return { this, _asize }; }
     constexpr const_iterator cend() const noexcept { return { this, _asize }; }
 
-    std::pair<iterator, InsertResult> insert(key_type key,
-                                             mapped_type value) noexcept
+    // TODO: update noexcept specifier based on if _resize() is noexcept
+    std::pair<iterator, InsertResult>
+    insert(key_type key, mapped_type value) noexcept(
+      std::is_nothrow_constructible_v<Key>&& std::is_nothrow_constructible_v<T>)
     {
         if (_used >= _cutoff)
             if (!_resize_fast(_size != 0u ? 2u * _asize : MinTableSize))
@@ -127,9 +147,15 @@ public:
             if (!_is_alive(flags, i)) {
                 auto result = _is_tombstone(flags, i) ? InsertResult::ReusedSlot
                                                       : InsertResult::Inserted;
-                // NOTE: key and value are IsTriviallyCopyable
-                keys[i] = key;
-                vals[i] = value;
+                // TODO: why is this throw causing a warning? is my noexcept
+                // specifier wrong?
+                new (&keys[i]) Key{ key };
+                try {
+                    new (&vals[i]) T{ value };
+                } catch (...) {
+                    keys[i].~Key();
+                    throw;
+                }
                 _animate(flags, i);
                 ++_size;
                 ++_used;
@@ -228,9 +254,14 @@ private:
                 j = (j + 1) & mask;
             }
             assert(!_is_alive(flgs, j));
+
+            // clang-format off
+            // keys[j] = oldkeys[i];
+            // vals[j] = oldvals[i];
+            new (&keys[j]) Key{ std::move(oldkeys[i]) };
+            new (&vals[j]) T{ std::move(oldvals[i]) };
+            // clang-format on
             _set_live(flgs, j);
-            keys[j] = oldkeys[i];
-            vals[j] = oldvals[i];
         }
         free(_flags);
         free(_keys);
