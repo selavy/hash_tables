@@ -12,6 +12,37 @@ TEST_CASE("LOA - Default constructed table is empty", "[loa]")
     REQUIRE(table.empty() == true);
 }
 
+struct AA {
+    AA(int xx, int yy) noexcept : x{xx}, y{yy} { ++_ctor; }
+    int x, y;
+    static int _ctor;
+};
+/*static*/int AA::_ctor = 0;
+TEST_CASE("LOA - append with forwarded args")
+{
+    loatable<int, AA> table;
+    auto result = table.insert(1, 2, 3);
+    REQUIRE(result.second == decltype(table)::InsertResult::Inserted);
+    REQUIRE(result.first.key()   == 1);
+    REQUIRE(result.first.val().x == 2);
+    REQUIRE(result.first.val().y == 3);
+    auto iter = table.find(1);
+    REQUIRE(iter != table.end());
+    REQUIRE(iter.value().x == 2);
+    REQUIRE(iter.value().y == 3);
+    REQUIRE(AA::_ctor == 1);
+    result = table.insert(1, 2, 3);
+    REQUIRE(result.first.key()   == 1);
+    REQUIRE(result.first.val().x == 2);
+    REQUIRE(result.first.val().y == 3);
+    REQUIRE(AA::_ctor == 1);
+    result = table.insert(2, 3, 4);
+    REQUIRE(result.first.key()   == 2);
+    REQUIRE(result.first.val().x == 3);
+    REQUIRE(result.first.val().y == 4);
+    REQUIRE(AA::_ctor == 2);
+}
+
 TEST_CASE("LOA - Resize changes table size")
 {
     loatable<int, int> table;

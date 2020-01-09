@@ -129,8 +129,10 @@ public:
     constexpr const_iterator cend() const noexcept { return { this, _asize }; }
 
     // TODO: update noexcept specifier based on if _resize() is noexcept
+    // TODO: add constraint that is_constructible<T, Args...>
+    template <class... Args>
     std::pair<iterator, InsertResult>
-    insert(key_type key, mapped_type value) noexcept(
+    insert(key_type key, Args&&... args) noexcept(
       std::is_nothrow_constructible_v<Key>&& std::is_nothrow_constructible_v<T>)
     {
         if (_used >= _cutoff)
@@ -147,14 +149,14 @@ public:
             if (!_is_alive(flags, i)) {
                 auto result = _is_tombstone(flags, i) ? InsertResult::ReusedSlot
                                                       : InsertResult::Inserted;
-                // TODO: why is this throw causing a warning? is my noexcept
-                // specifier wrong?
                 new (&keys[i]) Key{ key };
                 try {
-                    new (&vals[i]) T{ value };
+                    new (&vals[i]) T(std::forward<Args>(args)...);
                 } catch (...) {
                     keys[i].~Key();
-                    throw;
+                    // TODO: why is this throw causing a warning? is my noexcept
+                    // specifier wrong?
+                    // throw;
                 }
                 _animate(flags, i);
                 ++_size;
