@@ -419,12 +419,13 @@ TEST_CASE("Erase")
         REQUIRE(vec[2] == 7);
         REQUIRE(vec[3] == 8);
         REQUIRE(vec[4] == 9);
-        REQUIRE(*iter == 7);
+        REQUIRE(*iter  == 7);
     }
 
     SECTION("erase range is_nothrow_move_assignable")
     {
-        static_assert(std::is_nothrow_move_assignable_v<std::string>);
+        static_assert(std::is_nothrow_move_assignable_v<std::string> == true);
+        static_assert(std::is_trivial_v<std::string>                 == false);
         Vector<std::string> vec;
         for (int i = 0; i < 10; ++i) {
             vec.append(std::to_string(i));
@@ -440,7 +441,6 @@ TEST_CASE("Erase")
         REQUIRE(vec[2] == "7");
         REQUIRE(vec[3] == "8");
         REQUIRE(vec[4] == "9");
-        printf("%zu\n", (&*iter - &*vec.begin()));
-        REQUIRE(*iter == "7");
+        REQUIRE(*iter  == "7");
     }
 }

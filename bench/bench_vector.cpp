@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-// #define APPEND_BENCHMARKS
+#define APPEND_BENCHMARKS
 // #define COPY_BENCHMARKS
-#define ERASE_BENCHMARKS
+// #define ERASE_BENCHMARKS
 
 #define _mkstr(x) #x
 
@@ -184,7 +184,9 @@ COPY_ASSIGN_ARGS;
 // clang-format off
 #define APPEND_ARGS                                                            \
     ->Args({ 128, 128 })                                                       \
-    ->Args({ 128, 256 })
+    ->Args({ 128, 256 })                                                       \
+    ->Args({ 256, 256 })                                                       \
+    ->Args({ 1024, 32 })
 // clang-format on
 
 #ifdef APPEND_TRIVIAL
@@ -200,8 +202,21 @@ static void BM_AppendTrivial(benchmark::State& state)
         }
     }
 }
+static void BM_AppendTrivial_Unsafe(benchmark::State& state)
+{
+    for (auto _ : state) {
+        state.PauseTiming();
+        PltIntVec vec(42, state.range(0));
+        vec.reserve(vec.size() + state.range(1));
+        state.ResumeTiming();
+        for (int i = 0; i < state.range(1); ++i) {
+            vec.append_unsafe(i);
+        }
+    }
+}
 BENCHMARK_TEMPLATE(BM_AppendTrivial, PltIntVec) APPEND_ARGS;
 BENCHMARK_TEMPLATE(BM_AppendTrivial, StlIntVec) APPEND_ARGS;
+BENCHMARK(BM_AppendTrivial_Unsafe) APPEND_ARGS;
 #endif // APPEND_TRIVIAL
 
 #endif // APPEND_BENCHMARKS

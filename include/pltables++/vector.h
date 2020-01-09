@@ -108,6 +108,12 @@ public:
 
     ~Vector() noexcept { clear(); }
 
+    void reserve(int newsize)
+    {
+        if (newsize > size())
+            _grow(newsize);
+    }
+
     template <class... Args>
     void append(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
     {
