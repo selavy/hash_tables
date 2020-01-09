@@ -123,10 +123,12 @@ public:
     }
 
     template <class... Args>
-    void append_unsafe(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
+    bool try_append(Args&&... args) noexcept(std::is_nothrow_constructible_v<T>)
     {
-        assert(_size < _asize);
+        if (_size == _asize)
+            return false;
         new (&_data[_size++]) T(std::forward<Args>(args)...);
+        return true;
     }
 
     void push_back(const T& x) noexcept(std::is_nothrow_copy_constructible_v<T>)

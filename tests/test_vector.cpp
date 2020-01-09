@@ -164,105 +164,85 @@ TEST_CASE("Vector - append")
     }
 }
 
-struct NoThrowMove
-{
-    NoThrowMove(int i)
-      : x{ new int(i) }
-    {
-    }
-
-    NoThrowMove(const NoThrowMove& other) noexcept : x{ new int(*other.x) } {}
-
-    ~NoThrowMove() noexcept { delete x; }
-
-    NoThrowMove& operator=(NoThrowMove&& other) noexcept
-    {
-        x = other.x;
-        other.x = nullptr;
-        return *this;
-    }
-
-    NoThrowMove& operator=(const NoThrowMove& other)
-    {
-        throw std::runtime_error{ "No copy assign" };
-    }
-
-    int& operator*() { return *x; }
-
-    int* x = nullptr;
-};
-
+// Not IsTrivial
+// Not NoThrowMoveConstructible
+// Not NoThrowMoveAssignable
+// *IS* NoThrowCopyConstructible
+// *IS* NoThrowCopyAssignable
 struct NoThrowCopy
 {
     NoThrowCopy(int i)
       : x{ new int(i) }
     {
     }
-
     NoThrowCopy(const NoThrowCopy& other) noexcept : x{ new int(*other.x) } {}
-
+    NoThrowCopy(NoThrowCopy&&) noexcept = delete;
     ~NoThrowCopy() noexcept { delete x; }
-
     NoThrowCopy& operator=(const NoThrowCopy& other) noexcept
     {
         x = new int(*other.x);
         return *this;
     }
-
-    NoThrowCopy& operator=(NoThrowCopy&& other)
-    {
-        throw std::runtime_error{ "No move assign" };
-    }
-
+    NoThrowCopy& operator=(NoThrowCopy&& other) noexcept = delete;
     int& operator*() { return *x; }
-
     int* x = nullptr;
 };
+static_assert(std::is_trivial_v<NoThrowCopy> == false);
+static_assert(std::is_nothrow_move_constructible_v<NoThrowCopy> == false);
+static_assert(std::is_nothrow_move_assignable_v<NoThrowCopy> == false);
+static_assert(std::is_nothrow_copy_constructible_v<NoThrowCopy> == true);
+static_assert(std::is_nothrow_copy_assignable_v<NoThrowCopy> == true);
 
-struct NotTrivial
+struct Throwable
 {
-    NotTrivial(int i)
+    Throwable(int i)
       : x{ new int(i) }
     {
     }
-
-    NotTrivial(const NotTrivial& other)
+    ~Throwable() noexcept { delete x; }
+    // NOTE: not noexcept
+    Throwable(const Throwable& other)
       : x{ new int(*other.x) }
     {
     }
-
-    ~NotTrivial() noexcept { delete x; }
-
-    NotTrivial& operator=(const NotTrivial& other) noexcept
+    // NOTE: not noexcept
+    Throwable& operator=(const Throwable& other)
     {
         x = new int(*other.x);
         return *this;
     }
-
-    NotTrivial& operator=(NotTrivial&& other)
-    {
-        throw std::runtime_error{ "No move assign" };
-    }
-
+    Throwable& operator=(Throwable&&) noexcept = delete;
     int& operator*() { return *x; }
-
     int* x = nullptr;
 };
+static_assert(!std::is_trivial_v<Throwable>);
+static_assert(!std::is_nothrow_move_constructible_v<Throwable>);
+static_assert(!std::is_nothrow_move_assignable_v<Throwable>);
+static_assert(!std::is_nothrow_copy_constructible_v<Throwable>);
+static_assert(!std::is_nothrow_copy_assignable_v<Throwable>);
 
 TEST_CASE("Vector non-trivial types")
 {
-    SECTION("No throw move")
+    SECTION("Not trivial, but IsNoThrowMoveConstructible")
     {
-        Vector<NoThrowMove> vec;
+        static_assert(!std::is_trivial_v<std::string>);
+        static_assert(std::is_nothrow_move_constructible_v<std::string>);
+        Vector<std::string> vec;
         for (int i = 0; i < 128; ++i) {
             REQUIRE(vec.size() == i);
-            vec.append(i);
-            REQUIRE(*vec[i] == i);
+            vec.append(std::to_string(i));
+        }
+        REQUIRE(vec.size() == 128);
+        for (int i = 0; i < 128; ++i) {
+            REQUIRE(vec[i] == std::to_string(i));
         }
     }
 
-    SECTION("No throw copy")
+    SECTION("Not trivial, no nothrow move, but no throw copy")
     {
+        static_assert(!std::is_trivial_v<NoThrowCopy>);
+        static_assert(!std::is_nothrow_move_constructible_v<NoThrowCopy>);
+        static_assert(std::is_nothrow_copy_constructible_v<NoThrowCopy>);
         Vector<NoThrowCopy> vec;
         for (int i = 0; i < 128; ++i) {
             REQUIRE(vec.size() == i);
@@ -273,7 +253,10 @@ TEST_CASE("Vector non-trivial types")
 
     SECTION("Throwable Copy")
     {
-        Vector<NotTrivial> vec;
+        static_assert(!std::is_trivial_v<Throwable>);
+        static_assert(!std::is_nothrow_move_constructible_v<Throwable>);
+        static_assert(!std::is_nothrow_copy_constructible_v<Throwable>);
+        Vector<Throwable> vec;
         for (int i = 0; i < 128; ++i) {
             REQUIRE(vec.size() == i);
             vec.append(i);
@@ -419,13 +402,13 @@ TEST_CASE("Erase")
         REQUIRE(vec[2] == 7);
         REQUIRE(vec[3] == 8);
         REQUIRE(vec[4] == 9);
-        REQUIRE(*iter  == 7);
+        REQUIRE(*iter == 7);
     }
 
     SECTION("erase range is_nothrow_move_assignable")
     {
         static_assert(std::is_nothrow_move_assignable_v<std::string> == true);
-        static_assert(std::is_trivial_v<std::string>                 == false);
+        static_assert(std::is_trivial_v<std::string> == false);
         Vector<std::string> vec;
         for (int i = 0; i < 10; ++i) {
             vec.append(std::to_string(i));
@@ -441,6 +424,6 @@ TEST_CASE("Erase")
         REQUIRE(vec[2] == "7");
         REQUIRE(vec[3] == "8");
         REQUIRE(vec[4] == "9");
-        REQUIRE(*iter  == "7");
+        REQUIRE(*iter == "7");
     }
 }

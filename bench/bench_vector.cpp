@@ -210,7 +210,7 @@ static void BM_AppendTrivial_Unsafe(benchmark::State& state)
         vec.reserve(vec.size() + state.range(1));
         state.ResumeTiming();
         for (int i = 0; i < state.range(1); ++i) {
-            vec.append_unsafe(i);
+            vec.try_append(i);
         }
     }
 }
