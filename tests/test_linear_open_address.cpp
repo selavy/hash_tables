@@ -23,6 +23,8 @@ TEST_CASE("LOA - append with forwarded args")
     loatable<int, AA> table;
     auto result = table.insert(1, 2, 3);
     REQUIRE(result.second == decltype(table)::InsertResult::Inserted);
+    REQUIRE(table.insert_failed(result.second) == false);
+    REQUIRE(table.item_inserted(result.second) == true);
     REQUIRE(result.first.key()   == 1);
     REQUIRE(result.first.val().x == 2);
     REQUIRE(result.first.val().y == 3);

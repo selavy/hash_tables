@@ -35,6 +35,15 @@ public:
         ReusedSlot = 2,
     };
 
+    static bool insert_failed(InsertResult r) noexcept
+    {
+        return r == InsertResult::Error;
+    }
+    static bool item_inserted(InsertResult r) noexcept
+    {
+        return static_cast<int>(r) >= static_cast<int>(InsertResult::Inserted);
+    }
+
     class iterator;
     class const_iterator;
 
